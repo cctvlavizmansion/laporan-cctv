@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Laporan Pengecekan Rekaman CCTV</title>
+  <title>Laporan Kondisi dan Rekaman CCTV LaViz Mansion</title>
   <!-- Bootstrap 5 & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
@@ -11,20 +11,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; }
+    .header-logo { width: 65px; height: 65px; background-color: white; border-radius: 50%; padding: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.15); margin-bottom: 12px; }
+    .header-logo i { font-size: 32px; color: #0d6efd; }
     .card-custom { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .table-responsive { max-height: 600px; overflow-y: auto; }
-    .video-preview { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px; display: none; }
-    .progress { display: none; height: 10px; margin-top: 5px; }
+    .table-responsive { max-height: 650px; overflow-y: auto; }
+    .progress { display: none; height: 6px; margin-top: 6px; }
   </style>
 </head>
 <body>
 
 <div class="container my-4">
-  <!-- Header -->
+  <!-- Header dengan Logo & Judul Baru -->
   <div class="header-box text-center shadow">
-    <h3 class="fw-bold mb-1"><i class="bi bi-camera-video-fill me-2"></i>PORTAL CEK REKAMAN CCTV</h3>
-    <p class="mb-0 small">Sistem Pelaporan & Upload Video (Terintegrasi Auto-Sync Google Sheets)</p>
+    <div class="header-logo">
+      <i class="bi bi-shield-lock-fill"></i>
+    </div>
+    <h3 class="fw-bold mb-1">LAPORAN KONDISI DAN REKAMAN CCTV LAVIZ MANSION</h3>
+    <p class="mb-0 small text-white-50">Sistem Pelaporan, Inspeksi Harian & Dokumentasi Cloud Storage</p>
   </div>
 
   <!-- Panel Filter & Pencarian -->
@@ -82,7 +86,7 @@
             <th width="23%">Detail Lokasi</th>
             <th width="10%">Jadwal</th>
             <th width="8%">Shift</th>
-            <th width="27%">Upload Video & Status</th>
+            <th width="27%">Upload & Link Video</th>
           </tr>
         </thead>
         <tbody id="tableBody">
@@ -119,6 +123,15 @@ function loadSheetData() {
       
       masterData = results.data.map((row, index) => {
         const keys = Object.keys(row);
+        
+        let videoLink = row["LAMPIRAN VIDEO"] || row[keys[8]] || "";
+        if (videoLink.includes("http")) {
+          const match = videoLink.match(/(https?:\/\/[^\s\)]+)/);
+          if (match) videoLink = match[0];
+        } else {
+          videoLink = "";
+        }
+
         return {
           no: row["NO"] || row[keys[0]] || (index + 1),
           area: row["TITIK KAMERA"] || row[keys[1]] || "-",
@@ -127,7 +140,7 @@ function loadSheetData() {
           hari: (row["JADWAL PENGECEKAN"] || row[keys[4]] || "").toUpperCase(),
           shift: (row["SHIFT"] || row[keys[5]] || "").toString().trim(),
           statusExist: row["STATUS"] || row[keys[7]] || "",
-          videoExist: row["LAMPIRAN VIDEO"] || row[keys[8]] || ""
+          videoExist: videoLink
         };
       });
 
@@ -165,20 +178,25 @@ function renderTable(data) {
       <td><span class="badge bg-info text-dark">${item.hari}</span></td>
       <td><span class="badge bg-warning text-dark">Shift ${item.shift}</span></td>
       <td>
-        <div class="mb-1">
-          <select class="form-select form-select-sm mb-1" id="status-${itemNo}" onchange="updateStatusToSheets(${itemNo})">
-            <option value="Normal" ${item.statusExist === 'Normal' ? 'selected' : ''}>Normal / Sesuai</option>
-            <option value="Kendala" ${item.statusExist === 'Kendala' ? 'selected' : ''}>Ada Kendala / Off</option>
-          </select>
-          <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadToCloudinary(event, ${itemNo})" />
+        <div class="row g-1 align-items-center">
+          <div class="col-6">
+            <select class="form-select form-select-sm" id="status-${itemNo}" onchange="updateStatusToSheets(${itemNo})">
+              <option value="Normal" ${item.statusExist === 'Normal' ? 'selected' : ''}>Normal</option>
+              <option value="Kendala" ${item.statusExist === 'Kendala' ? 'selected' : ''}>Kendala</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadToCloudinary(event, ${itemNo})" />
+          </div>
         </div>
+
         <div class="progress" id="progress-container-${itemNo}">
           <div id="progress-bar-${itemNo}" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
         </div>
-        <small id="upload-status-${itemNo}" class="text-muted d-block mt-1">
-          ${item.videoExist ? `<i class="bi bi-check-circle-fill text-success"></i> Existing: <a href="${item.videoExist}" target="_blank">Lihat Video</a>` : ''}
-        </small>
-        <video id="video-${itemNo}" class="video-preview" controls></video>
+
+        <div id="upload-status-${itemNo}" class="mt-1">
+          ${item.videoExist ? `<a href="${item.videoExist}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 mt-1"><i class="bi bi-play-circle me-1"></i>Lihat Video</a>` : '<small class="text-muted" style="font-size: 11px;">Belum ada video</small>'}
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -197,13 +215,11 @@ function uploadToCloudinary(event, id) {
   const progressContainer = document.getElementById(`progress-container-${id}`);
   const progressBar = document.getElementById(`progress-bar-${id}`);
   const statusText = document.getElementById(`upload-status-${id}`);
-  const videoElem = document.getElementById(`video-${id}`);
   const statusVal = document.getElementById(`status-${id}`).value;
 
   progressContainer.style.display = "flex";
   progressBar.style.width = "0%";
-  statusText.innerText = "Mengunggah video ke cloud...";
-  statusText.className = "text-primary fw-bold small mt-1";
+  statusText.innerHTML = `<small class="text-primary fw-bold">Mengunggah...</small>`;
 
   const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
   const formData = new FormData();
@@ -217,7 +233,7 @@ function uploadToCloudinary(event, id) {
     if (e.lengthComputable) {
       const percentComplete = Math.round((e.loaded / e.total) * 100);
       progressBar.style.width = percentComplete + "%";
-      statusText.innerText = `Mengunggah: ${percentComplete}%`;
+      statusText.innerHTML = `<small class="text-primary fw-bold">Mengunggah: ${percentComplete}%</small>`;
     }
   };
 
@@ -226,21 +242,16 @@ function uploadToCloudinary(event, id) {
       const response = JSON.parse(xhr.responseText);
       const videoUrl = response.secure_url;
 
-      statusText.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Berhasil diunggah & disimpan ke Sheets! <a href="${videoUrl}" target="_blank" class="ms-1">Lihat Video</a>`;
-      videoElem.src = videoUrl;
-      videoElem.style.display = "block";
-
-      // Kirim otomatis ke Google Sheets
+      statusText.innerHTML = `<a href="${videoUrl}" target="_blank" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Lihat Video Baru</a>`;
+      
       sendToGoogleSheets({ no: id, status: statusVal, videoUrl: videoUrl });
     } else {
-      statusText.innerText = "Gagal mengunggah video. Cek koneksi / preset Cloudinary.";
-      statusText.className = "text-danger small mt-1";
+      statusText.innerHTML = `<small class="text-danger">Gagal mengunggah!</small>`;
     }
   };
 
   xhr.onerror = function () {
-    statusText.innerText = "Terjadi kesalahan koneksi saat unggah.";
-    statusText.className = "text-danger small mt-1";
+    statusText.innerHTML = `<small class="text-danger">Kesalahan koneksi!</small>`;
   };
 
   xhr.send(formData);
