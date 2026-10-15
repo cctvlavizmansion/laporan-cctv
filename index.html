@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Laporan Pengecekan Rekaman CCTV</title>
-  <!-- Bootstrap 5 CSS -->
+  <!-- Bootstrap 5 & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+  <!-- PapaParse untuk membaca data CSV Google Sheets -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
@@ -22,7 +24,7 @@
   <!-- Header -->
   <div class="header-box text-center shadow">
     <h3 class="fw-bold mb-1"><i class="bi bi-camera-video-fill me-2"></i>PORTAL CEK REKAMAN CCTV</h3>
-    <p class="mb-0 small">Sistem Pelaporan & Upload Video Pengecekan Rutin (Cloud Storage)</p>
+    <p class="mb-0 small">Sistem Pelaporan & Upload Video (Terintegrasi Live Google Sheets)</p>
   </div>
 
   <!-- Panel Filter & Pencarian -->
@@ -61,7 +63,10 @@
 
   <!-- Ringkasan Status -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="fw-bold text-secondary">Menampilkan <span id="totalRecords" class="badge bg-primary">0</span> Titik Kamera</span>
+    <span class="fw-bold text-secondary">
+      Menampilkan <span id="totalRecords" class="badge bg-primary">0</span> Titik Kamera
+      <span id="loadingStatus" class="ms-2 spinner-border spinner-border-sm text-primary" role="status"></span>
+    </span>
     <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
   </div>
 
@@ -81,7 +86,12 @@
           </tr>
         </thead>
         <tbody id="tableBody">
-          <!-- Data diisi oleh JavaScript -->
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              <div class="spinner-border text-primary mb-2" role="status"></div>
+              <div>Memuat data live dari Google Sheets...</div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -93,5 +103,160 @@
 const CLOUDINARY_CLOUD_NAME = "qpgm2usi";
 const CLOUDINARY_UPLOAD_PRESET = "riyojafar";
 
-// Master Data 205 Titik Kamera
-const masterData =
+// Link Publikasi CSV Google Sheets milik Anda
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbzwsA4gaptVtHZ5qtAahwCrekIJTSX0tpSSJDR0xshVWXHk2NePgELpqvKf6MdzuMqMJhacm3ld-1/pub?gid=910982721&single=true&output=csv";
+
+let masterData = [];
+
+// Fungsi untuk mengambil data otomatis dari Google Sheets
+function loadSheetData() {
+  Papa.parse(GOOGLE_SHEET_CSV_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      document.getElementById("loadingStatus").style.display = "none";
+      
+      masterData = results.data.map((row, index) => {
+        // Ambil nama kolom berdasarkan pola header di Google Sheets Anda
+        const keys = Object.keys(row);
+        return {
+          no: row["NO"] || row[keys[0]] || (index + 1),
+          area: row["TITIK KAMERA"] || row[keys[1]] || "-",
+          kamera: row["TITIK KAMERA_1"] || row["TITIK KAMERA"] || row[keys[2]] || "-",
+          lokasi: row["DETAIL LOKASI"] || row[keys[3]] || "-",
+          hari: (row["JADWAL PENGECEKAN"] || row[keys[4]] || "").toUpperCase(),
+          shift: (row["SHIFT"] || row[keys[5]] || "").toString().trim()
+        };
+      });
+
+      renderTable(masterData);
+    },
+    error: function(err) {
+      document.getElementById("loadingStatus").style.display = "none";
+      document.getElementById("tableBody").innerHTML = `
+        <tr><td colspan="7" class="text-center py-4 text-danger fw-bold">Gagal mengambil data dari Google Sheets. Pastikan publikasi web aktif.</td></tr>
+      `;
+    }
+  });
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
+
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Data tidak ditemukan</td></tr>`;
+    document.getElementById("totalRecords").innerText = 0;
+    return;
+  }
+
+  document.getElementById("totalRecords").innerText = data.length;
+
+  data.forEach((item, idx) => {
+    const itemNo = item.no || (idx + 1);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="fw-bold">${itemNo}</td>
+      <td><span class="badge bg-secondary">${item.area}</span></td>
+      <td class="fw-semibold">${item.kamera}</td>
+      <td><small>${item.lokasi}</small></td>
+      <td><span class="badge bg-info text-dark">${item.hari}</span></td>
+      <td><span class="badge bg-warning text-dark">Shift ${item.shift}</span></td>
+      <td>
+        <div class="mb-1">
+          <select class="form-select form-select-sm mb-1" id="status-${itemNo}">
+            <option value="Normal">Normal / Sesuai</option>
+            <option value="Kendala">Ada Kendala / Off</option>
+          </select>
+          <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadToCloudinary(event, ${itemNo})" />
+        </div>
+        <div class="progress" id="progress-container-${itemNo}">
+          <div id="progress-bar-${itemNo}" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+        </div>
+        <small id="upload-status-${itemNo}" class="text-muted d-block mt-1"></small>
+        <video id="video-${itemNo}" class="video-preview" controls></video>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function uploadToCloudinary(event, id) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const progressContainer = document.getElementById(`progress-container-${id}`);
+  const progressBar = document.getElementById(`progress-bar-${id}`);
+  const statusText = document.getElementById(`upload-status-${id}`);
+  const videoElem = document.getElementById(`video-${id}`);
+
+  progressContainer.style.display = "flex";
+  progressBar.style.width = "0%";
+  statusText.innerText = "Mengunggah video ke cloud...";
+  statusText.className = "text-primary fw-bold small mt-1";
+
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", url, true);
+
+  xhr.upload.onprogress = function (e) {
+    if (e.lengthComputable) {
+      const percentComplete = Math.round((e.loaded / e.total) * 100);
+      progressBar.style.width = percentComplete + "%";
+      statusText.innerText = `Mengunggah: ${percentComplete}%`;
+    }
+  };
+
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      const response = JSON.parse(xhr.responseText);
+      const videoUrl = response.secure_url;
+
+      statusText.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Berhasil disimpan di Cloud! <a href="${videoUrl}" target="_blank" class="ms-1">Link Video</a>`;
+      videoElem.src = videoUrl;
+      videoElem.style.display = "block";
+    } else {
+      statusText.innerText = "Gagal mengunggah video. Cek koneksi / preset Cloudinary.";
+      statusText.className = "text-danger small mt-1";
+    }
+  };
+
+  xhr.onerror = function () {
+    statusText.innerText = "Terjadi kesalahan koneksi saat unggah.";
+    statusText.className = "text-danger small mt-1";
+  };
+
+  xhr.send(formData);
+}
+
+function filterData() {
+  const hari = document.getElementById("filterHari").value.toUpperCase();
+  const shift = document.getElementById("filterShift").value;
+  const keyword = document.getElementById("searchKeyword").value.toLowerCase();
+
+  const filtered = masterData.filter((item) => {
+    const matchHari = !hari || item.hari.includes(hari);
+    const matchShift = !shift || item.shift === shift;
+    const matchKeyword = !keyword || 
+      item.area.toLowerCase().includes(keyword) || 
+      item.kamera.toLowerCase().includes(keyword) || 
+      item.lokasi.toLowerCase().includes(keyword) ||
+      item.no.toString().includes(keyword);
+
+    return matchHari && matchShift && matchKeyword;
+  });
+
+  renderTable(filtered);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadSheetData();
+});
+</script>
+</body>
+</html>
