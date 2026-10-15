@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laporan Pengecekan Rekaman CCTV</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .card-custom { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .table-responsive { max-height: 600px; overflow-y: auto; }
+    .video-preview { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px; display: none; }
+    .progress { display: none; height: 10px; margin-top: 5px; }
+  </style>
+</head>
+<body>
+
+<div class="container my-4">
+  <!-- Header -->
+  <div class="header-box text-center shadow">
+    <h3 class="fw-bold mb-1"><i class="bi bi-camera-video-fill me-2"></i>PORTAL CEK REKAMAN CCTV</h3>
+    <p class="mb-0 small">Sistem Pelaporan & Upload Video Pengecekan Rutin (Cloud Storage)</p>
+  </div>
+
+  <!-- Panel Filter & Pencarian -->
+  <div class="card card-custom p-3 mb-4">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i> Jadwal Hari</label>
+        <select id="filterHari" class="form-select" onchange="filterData()">
+          <option value="">-- Semua Hari --</option>
+          <option value="SENIN">Senin</option>
+          <option value="SELASA">Selasa</option>
+          <option value="RABU">Rabu</option>
+          <option value="KAMIS">Kamis</option>
+          <option value="JUMAT">Jumat</option>
+          <option value="SABTU">Sabtu</option>
+          <option value="MINGGU">Minggu</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold"><i class="bi bi-clock-history me-1"></i> Shift</label>
+        <select id="filterShift" class="form-select" onchange="filterData()">
+          <option value="">-- Semua Shift --</option>
+          <option value="1">Shift 1</option>
+          <option value="2">Shift 2</option>
+          <option value="3">Shift 3</option>
+        </select>
+      </div>
+
+      <div class="col-md-5">
+        <label class="form-label fw-bold"><i class="bi bi-search me-1"></i> Cari Titik / Lokasi</label>
+        <input type="text" id="searchKeyword" class="form-control" placeholder="Cari nama kamera atau detail lokasi..." onkeyup="filterData()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Ringkasan Status -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fw-bold text-secondary">Menampilkan <span id="totalRecords" class="badge bg-primary">0</span> Titik Kamera</span>
+    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
+  </div>
+
+  <!-- Tabel Data -->
+  <div class="card card-custom p-3">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle" id="cctvTable">
+        <thead class="table-dark sticky-top">
+          <tr>
+            <th width="5%">No</th>
+            <th width="12%">Area</th>
+            <th width="15%">Nama Kamera</th>
+            <th width="23%">Detail Lokasi</th>
+            <th width="10%">Jadwal</th>
+            <th width="8%">Shift</th>
+            <th width="27%">Upload Video & Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Data diisi oleh JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// Konfigurasi Cloudinary Anda
+const CLOUDINARY_CLOUD_NAME = "qpgm2usi";
+const CLOUDINARY_UPLOAD_PRESET = "riyojafar";
+
+// Master Data 205 Titik Kamera
+const masterData =
