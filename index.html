@@ -7,7 +7,7 @@
   <!-- Bootstrap 5 & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
-  <!-- PapaParse untuk membaca data CSV Google Sheets -->
+  <!-- PapaParse untuk membaca CSV -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -22,7 +22,7 @@
 <body>
 
 <div class="container my-4">
-  <!-- Header dengan Logo & Judul Baru -->
+  <!-- Header -->
   <div class="header-box text-center shadow">
     <div class="header-logo">
       <i class="bi bi-shield-lock-fill"></i>
@@ -86,7 +86,7 @@
             <th width="23%">Detail Lokasi</th>
             <th width="10%">Jadwal</th>
             <th width="8%">Shift</th>
-            <th width="27%">Upload & Link Video</th>
+            <th width="27%">Kondisi & Video</th>
           </tr>
         </thead>
         <tbody id="tableBody">
@@ -124,7 +124,7 @@ function loadSheetData() {
       masterData = results.data.map((row, index) => {
         const keys = Object.keys(row);
         
-        let videoLink = row["LAMPIRAN VIDEO"] || row[keys[8]] || "";
+        let videoLink = row[keys[7]] || row["LAMPIRAN VIDEO"] || "";
         if (videoLink.includes("http")) {
           const match = videoLink.match(/(https?:\/\/[^\s\)]+)/);
           if (match) videoLink = match[0];
@@ -135,11 +135,11 @@ function loadSheetData() {
         return {
           no: row["NO"] || row[keys[0]] || (index + 1),
           area: row["TITIK KAMERA"] || row[keys[1]] || "-",
-          kamera: row["TITIK KAMERA_1"] || row["TITIK KAMERA"] || row[keys[2]] || "-",
+          kamera: row["TITIK KAMERA_1"] || row[keys[2]] || "-",
           lokasi: row["DETAIL LOKASI"] || row[keys[3]] || "-",
           hari: (row["JADWAL PENGECEKAN"] || row[keys[4]] || "").toUpperCase(),
           shift: (row["SHIFT"] || row[keys[5]] || "").toString().trim(),
-          statusExist: row["STATUS"] || row[keys[7]] || "",
+          statusExist: (row["KETERANGAN"] || row[keys[6]] || "Normal").trim(),
           videoExist: videoLink
         };
       });
@@ -181,8 +181,12 @@ function renderTable(data) {
         <div class="row g-1 align-items-center">
           <div class="col-6">
             <select class="form-select form-select-sm" id="status-${itemNo}" onchange="updateStatusToSheets(${itemNo})">
-              <option value="Normal" ${item.statusExist === 'Normal' ? 'selected' : ''}>Normal</option>
-              <option value="Kendala" ${item.statusExist === 'Kendala' ? 'selected' : ''}>Kendala</option>
+              <option value="Normal" ${item.statusExist.toUpperCase() === 'NORMAL' ? 'selected' : ''}>Normal</option>
+              <option value="NOISE" ${item.statusExist.toUpperCase() === 'NOISE' ? 'selected' : ''}>NOISE</option>
+              <option value="GETAR" ${item.statusExist.toUpperCase() === 'GETAR' ? 'selected' : ''}>GETAR</option>
+              <option value="BURAM" ${item.statusExist.toUpperCase() === 'BURAM' ? 'selected' : ''}>BURAM</option>
+              <option value="MATI" ${item.statusExist.toUpperCase() === 'MATI' ? 'selected' : ''}>MATI</option>
+              <option value="Ada Kendala" ${item.statusExist.toUpperCase() === 'ADA KENDALA' ? 'selected' : ''}>Ada Kendala</option>
             </select>
           </div>
           <div class="col-6">
