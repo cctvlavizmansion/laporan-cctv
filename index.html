@@ -7,15 +7,15 @@
   <!-- Bootstrap 5 & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
-  <!-- PapaParse -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Library SheetJS untuk Export Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; }
     .header-logo { width: 65px; height: 65px; background-color: white; border-radius: 50%; padding: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.15); margin-bottom: 12px; }
     .header-logo i { font-size: 32px; color: #0d6efd; }
     .card-custom { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .table-responsive { max-height: 650px; overflow-y: auto; }
+    .table-responsive { max-height: 600px; overflow-y: auto; }
     .progress { display: none; height: 6px; margin-top: 6px; }
   </style>
 </head>
@@ -32,7 +32,7 @@
   </div>
 
   <!-- Panel Filter & Periode -->
-  <div class="card card-custom p-3 mb-4">
+  <div class="card card-custom p-3 mb-3">
     <div class="row g-3">
       <!-- Dropdown Bulan -->
       <div class="col-md-3">
@@ -97,13 +97,31 @@
     </div>
   </div>
 
-  <!-- Ringkasan Status -->
+  <!-- Panel Multi Upload 5 Video -->
+  <div class="card card-custom p-3 mb-4 bg-light border-primary">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div>
+        <h6 class="fw-bold text-primary mb-1"><i class="bi bi-cloud-upload-fill me-1"></i> Fitur Upload Massal (Maksimal 5 Video)</h6>
+        <small class="text-muted">Centang titik kamera di tabel bawah, lalu pilih hingga 5 video sekaligus untuk diunggah bersamaan.</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <input type="file" id="batchVideoInput" class="form-control form-control-sm" accept="video/*" multiple onchange="handleBatchUpload(event)" />
+        <span id="batchCountBadge" class="badge bg-secondary">0 Kamera Dipilih</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ringkasan Status & Tombol Export Excel / CSV / Cetak -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <span class="fw-bold text-secondary">
       Menampilkan <span id="totalRecords" class="badge bg-primary">0</span> Titik Kamera
       <span id="loadingStatus" class="ms-2 spinner-border spinner-border-sm text-primary" role="status"></span>
     </span>
-    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
+    <div>
+      <button class="btn btn-success btn-sm me-1" onclick="exportTableToExcel()"><i class="bi bi-file-earmark-excel-fill me-1"></i>Download Excel (.xlsx)</button>
+      <button class="btn btn-outline-success btn-sm me-1" onclick="exportTableToCSV()"><i class="bi bi-file-earmark-text me-1"></i>Download CSV</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
+    </div>
   </div>
 
   <!-- Tabel Data -->
@@ -112,20 +130,21 @@
       <table class="table table-hover align-middle" id="cctvTable">
         <thead class="table-dark sticky-top">
           <tr>
+            <th width="4%"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" /></th>
             <th width="5%">No</th>
-            <th width="12%">Area</th>
+            <th width="11%">Area</th>
             <th width="15%">Nama Kamera</th>
-            <th width="23%">Detail Lokasi</th>
-            <th width="10%">Jadwal</th>
-            <th width="8%">Shift</th>
+            <th width="22%">Detail Lokasi</th>
+            <th width="9%">Jadwal</th>
+            <th width="7%">Shift</th>
             <th width="27%">Kondisi & Video</th>
           </tr>
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="7" class="text-center py-4 text-muted">
+            <td colspan="8" class="text-center py-4 text-muted">
               <div class="spinner-border text-primary mb-2" role="status"></div>
-              <div>Memuat data live dari Google Sheets...</div>
+              <div>Memuat data live langsung dari Google Sheets...</div>
             </td>
           </tr>
         </tbody>
@@ -135,58 +154,52 @@
 </div>
 
 <script>
-// Konfigurasi Cloudinary & Apps Script
 const CLOUDINARY_CLOUD_NAME = "qpgm2usi";
 const CLOUDINARY_UPLOAD_PRESET = "riyojafar";
 const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNOL-gEwlXR7yfwIXNbd-ooI4469U1wJEA5fnwb6VQnmCMnt6GH81unnirWtaWGCWV7g/exec";
 
-// Link CSV Google Sheets
-const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbzwsA4gaptVtHZ5qtAahwCrekIJTSX0tpSSJDR0xshVWXHk2NePgELpqvKf6MdzuMqMJhacm3ld-1/pub?gid=910982721&single=true&output=csv";
-
 let masterData = [];
+
+function extractUrl(text) {
+  if (!text) return "";
+  const match = text.match(/(https?:\/\/[^\s\)]+)/i);
+  return match ? match[0] : "";
+}
 
 function loadSheetData() {
   document.getElementById("loadingStatus").style.display = "inline-block";
 
-  Papa.parse(GOOGLE_SHEET_CSV_URL, {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: function(results) {
+  fetch(GOOGLE_APPS_SCRIPT_URL)
+    .then(response => response.json())
+    .then(res => {
       document.getElementById("loadingStatus").style.display = "none";
-      
-      masterData = results.data.map((row, index) => {
-        const keys = Object.keys(row);
-        
-        let videoLink = row[keys[7]] || row["LAMPIRAN VIDEO"] || "";
-        if (videoLink.includes("http")) {
-          const match = videoLink.match(/(https?:\/\/[^\s\)]+)/);
-          if (match) videoLink = match[0];
-        } else {
-          videoLink = "";
-        }
-
-        return {
-          no: row["NO"] || row[keys[0]] || (index + 1),
-          area: row["TITIK KAMERA"] || row[keys[1]] || "-",
-          kamera: row["TITIK KAMERA_1"] || row[keys[2]] || "-",
-          lokasi: row["DETAIL LOKASI"] || row[keys[3]] || "-",
-          hari: (row["JADWAL PENGECEKAN"] || row[keys[4]] || "").toUpperCase(),
-          shift: (row["SHIFT"] || row[keys[5]] || "").toString().trim(),
-          statusExist: (row["KETERANGAN"] || row[keys[6]] || "Normal").trim(),
-          videoExist: videoLink
-        };
-      });
-
-      renderTable(masterData);
-    },
-    error: function(err) {
+      if (res.status === "success" && res.data) {
+        masterData = res.data.map((item, index) => {
+          const itemNo = item.no || (index + 1);
+          let videoLink = extractUrl(item.video);
+          
+          return {
+            no: itemNo,
+            area: item.area || "-",
+            kamera: item.kamera || "-",
+            lokasi: item.lokasi || "-",
+            hari: (item.hari || "").toString().toUpperCase(),
+            shift: (item.shift || "").toString().trim(),
+            statusExist: (item.keterangan || "Normal").toString().trim(),
+            videoExist: videoLink
+          };
+        });
+        renderTable(masterData);
+      } else {
+        throw new Error("Gagal mengambil data");
+      }
+    })
+    .catch(err => {
       document.getElementById("loadingStatus").style.display = "none";
       document.getElementById("tableBody").innerHTML = `
-        <tr><td colspan="7" class="text-center py-4 text-danger fw-bold">Gagal mengambil data dari Google Sheets. Pastikan publikasi web aktif.</td></tr>
+        <tr><td colspan="8" class="text-center py-4 text-danger fw-bold">Gagal memuat data live dari Google Sheets. Cek koneksi Anda.</td></tr>
       `;
-    }
-  });
+    });
 }
 
 function renderTable(data) {
@@ -194,7 +207,7 @@ function renderTable(data) {
   tbody.innerHTML = "";
 
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Data tidak ditemukan</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Data tidak ditemukan</td></tr>`;
     document.getElementById("totalRecords").innerText = 0;
     return;
   }
@@ -205,6 +218,7 @@ function renderTable(data) {
     const itemNo = item.no || (idx + 1);
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td><input type="checkbox" class="row-checkbox" value="${itemNo}" onchange="updateBatchBadge()" /></td>
       <td class="fw-bold">${itemNo}</td>
       <td><span class="badge bg-secondary">${item.area}</span></td>
       <td class="fw-semibold">${item.kamera}</td>
@@ -224,7 +238,7 @@ function renderTable(data) {
             </select>
           </div>
           <div class="col-6">
-            <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadToCloudinary(event, ${itemNo})" />
+            <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadSingleVideo(event, ${itemNo})" />
           </div>
         </div>
 
@@ -232,8 +246,11 @@ function renderTable(data) {
           <div id="progress-bar-${itemNo}" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
         </div>
 
-        <div id="upload-status-${itemNo}" class="mt-1">
-          ${item.videoExist ? `<a href="${item.videoExist}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 mt-1"><i class="bi bi-play-circle me-1"></i>Lihat Video</a>` : '<small class="text-muted" style="font-size: 11px;">Belum ada video</small>'}
+        <div id="upload-status-${itemNo}" class="mt-1 d-flex gap-1 flex-wrap">
+          ${item.videoExist ? `
+            <a href="${item.videoExist}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 mt-1"><i class="bi bi-play-circle me-1"></i>Lihat Video</a>
+            <a href="${item.videoExist}" download="CCTV_No_${itemNo}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download Video</a>
+          ` : '<small class="text-muted" style="font-size: 11px;">Belum ada video</small>'}
         </div>
       </td>
     `;
@@ -241,23 +258,47 @@ function renderTable(data) {
   });
 }
 
-function getPeriodeData() {
-  return {
-    bulan: document.getElementById("filterBulan").value,
-    minggu: document.getElementById("filterMinggu").value
-  };
+function updateBatchBadge() {
+  const selected = document.querySelectorAll('.row-checkbox:checked');
+  document.getElementById('batchCountBadge').innerText = `${selected.length} Kamera Dipilih`;
 }
 
-function updateStatusToSheets(id) {
-  const statusVal = document.getElementById(`status-${id}`).value;
-  const periode = getPeriodeData();
-  sendToGoogleSheets({ no: id, status: statusVal, bulan: periode.bulan, minggu: periode.minggu });
+function toggleSelectAll(master) {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  checkboxes.forEach(cb => cb.checked = master.checked);
+  updateBatchBadge();
 }
 
-function uploadToCloudinary(event, id) {
+function handleBatchUpload(event) {
+  const files = event.target.files;
+  const selectedCheckboxes = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+
+  if (selectedCheckboxes.length === 0) {
+    alert("Silakan centang titik kamera terlebih dahulu!");
+    event.target.value = "";
+    return;
+  }
+
+  if (files.length > 5 || selectedCheckboxes.length > 5) {
+    alert("Maksimal upload bersamaan adalah 5 video / 5 kamera!");
+    event.target.value = "";
+    return;
+  }
+
+  const count = Math.min(files.length, selectedCheckboxes.length);
+  for (let i = 0; i < count; i++) {
+    const itemNo = selectedCheckboxes[i].value;
+    const file = files[i];
+    executeUploadProcess(file, itemNo);
+  }
+}
+
+function uploadSingleVideo(event, id) {
   const file = event.target.files[0];
-  if (!file) return;
+  if (file) executeUploadProcess(file, id);
+}
 
+function executeUploadProcess(file, id) {
   const progressContainer = document.getElementById(`progress-container-${id}`);
   const progressBar = document.getElementById(`progress-bar-${id}`);
   const statusText = document.getElementById(`upload-status-${id}`);
@@ -289,8 +330,10 @@ function uploadToCloudinary(event, id) {
       const response = JSON.parse(xhr.responseText);
       const videoUrl = response.secure_url;
 
-      statusText.innerHTML = `<a href="${videoUrl}" target="_blank" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Lihat Video Baru</a>`;
-      
+      statusText.innerHTML = `
+        <a href="${videoUrl}" target="_blank" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Lihat Video Baru</a>
+        <a href="${videoUrl}" download="CCTV_No_${id}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download Video</a>
+      `;
       sendToGoogleSheets({ no: id, status: statusVal, videoUrl: videoUrl, bulan: periode.bulan, minggu: periode.minggu });
     } else {
       statusText.innerHTML = `<small class="text-danger">Gagal mengunggah!</small>`;
@@ -304,6 +347,19 @@ function uploadToCloudinary(event, id) {
   xhr.send(formData);
 }
 
+function getPeriodeData() {
+  return {
+    bulan: document.getElementById("filterBulan").value,
+    minggu: document.getElementById("filterMinggu").value
+  };
+}
+
+function updateStatusToSheets(id) {
+  const statusVal = document.getElementById(`status-${id}`).value;
+  const periode = getPeriodeData();
+  sendToGoogleSheets({ no: id, status: statusVal, bulan: periode.bulan, minggu: periode.minggu });
+}
+
 function sendToGoogleSheets(payload) {
   fetch(GOOGLE_APPS_SCRIPT_URL, {
     method: "POST",
@@ -311,6 +367,64 @@ function sendToGoogleSheets(payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   }).catch(err => console.error("Error sync to Sheets:", err));
+}
+
+// === FUNGSI EXPORT EXCEL (.XLSX) ===
+function exportTableToExcel() {
+  if (masterData.length === 0) return alert("Tidak ada data untuk diunduh!");
+  const periode = getPeriodeData();
+
+  // Susun data untuk Sheet Excel
+  const excelData = masterData.map(r => ({
+    "NO": r.no,
+    "AREA": r.area,
+    "NAMA KAMERA": r.kamera,
+    "DETAIL LOKASI": r.lokasi,
+    "JADWAL PENGECEKAN": r.hari,
+    "SHIFT": r.shift,
+    "KONDISI / STATUS": r.statusExist,
+    "LINK VIDEO CLOUDINARY": r.videoExist || "-"
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  
+  // Atur lebar kolom Excel agar rapi
+  worksheet['!cols'] = [
+    { wch: 6 },  // NO
+    { wch: 18 }, // AREA
+    { wch: 25 }, // NAMA KAMERA
+    { wch: 35 }, // DETAIL LOKASI
+    { wch: 18 }, // JADWAL
+    { wch: 8 },  // SHIFT
+    { wch: 18 }, // KONDISI
+    { wch: 60 }  // LINK VIDEO
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, `${periode.bulan}_${periode.minggu}`);
+
+  // Simpan file Excel
+  const fileName = `Laporan_CCTV_LaViz_${periode.bulan}_${periode.minggu}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+}
+
+// === FUNGSI EXPORT CSV ===
+function exportTableToCSV() {
+  if (masterData.length === 0) return alert("Tidak ada data untuk diunduh!");
+  const periode = getPeriodeData();
+  
+  let csvContent = "data:text/csv;charset=utf-8,No,Area,Nama Kamera,Detail Lokasi,Hari,Shift,Kondisi,Link Video\n";
+  masterData.forEach(r => {
+    csvContent += `"${r.no}","${r.area}","${r.kamera}","${r.lokasi}","${r.hari}","${r.shift}","${r.statusExist}","${r.videoExist}"\n`;
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Rekap_CCTV_LaViz_${periode.bulan}_${periode.minggu}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function filterData() {
