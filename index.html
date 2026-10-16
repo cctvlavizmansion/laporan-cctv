@@ -271,18 +271,21 @@ function toggleSelectAll(master) {
 
 function handleBatchUpload(event) {
   const files = event.target.files;
-  const selectedCheckboxes = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+  if (!files || files.length === 0) return;
 
-  if (selectedCheckboxes.length === 0) {
-    alert("Silakan centang titik kamera terlebih dahulu!");
+  if (files.length > 5) {
+    alert("Maksimal upload sekaligus adalah 5 video!");
     event.target.value = "";
     return;
   }
 
-  if (files.length > 5 || selectedCheckboxes.length > 5) {
-    alert("Maksimal upload bersamaan adalah 5 video / 5 kamera!");
-    event.target.value = "";
-    return;
+  // Ambil titik kamera yang dicentang, atau otomatis pilih 5 baris pertama yang tampil di tabel
+  let selectedCheckboxes = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+  
+  if (selectedCheckboxes.length === 0) {
+    // Jika tidak ada yang dicentang, otomatis ambil baris kamera yang sedang tampil
+    const allCheckboxes = Array.from(document.querySelectorAll('.row-checkbox'));
+    selectedCheckboxes = allCheckboxes.slice(0, files.length);
   }
 
   const count = Math.min(files.length, selectedCheckboxes.length);
@@ -290,6 +293,8 @@ function handleBatchUpload(event) {
     const itemNo = selectedCheckboxes[i].value;
     const file = files[i];
     executeUploadProcess(file, itemNo);
+  }
+}
   }
 }
 
