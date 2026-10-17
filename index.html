@@ -70,10 +70,10 @@
     </div>
   </div>
 
-  <!-- Panel Filter & Periode Laporan -->
+  <!-- Panel Filter & Periode Laporan (Clean: Tanpa Hari, Shift, Petugas) -->
   <div class="card card-custom p-3 mb-3">
     <div class="row g-3">
-      <div class="col-md-3">
+      <div class="col-md-6">
         <label class="form-label fw-bold text-primary"><i class="bi bi-calendar3 me-1"></i> Bulan Laporan</label>
         <select id="filterBulan" class="form-select border-primary" onchange="filterData()">
           <option value="Januari">Januari</option>
@@ -91,7 +91,7 @@
         </select>
       </div>
 
-      <div class="col-md-3">
+      <div class="col-md-6">
         <label class="form-label fw-bold text-primary"><i class="bi bi-calendar-week me-1"></i> Periode Minggu</label>
         <select id="filterMinggu" class="form-select border-primary" onchange="filterData()">
           <option value="Minggu 1" selected>Minggu 1</option>
@@ -102,44 +102,9 @@
         </select>
       </div>
 
-      <div class="col-md-3">
-        <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i> Jadwal Hari</label>
-        <select id="filterHari" class="form-select" onchange="filterData()">
-          <option value="">-- Semua Hari --</option>
-          <option value="SENIN">Senin</option>
-          <option value="SELASA">Selasa</option>
-          <option value="RABU">Rabu</option>
-          <option value="KAMIS">Kamis</option>
-          <option value="JUMAT">Jumat</option>
-          <option value="SABTU">Sabtu</option>
-          <option value="MINGGU">Minggu</option>
-        </select>
-      </div>
-
-      <div class="col-md-3">
-        <label class="form-label fw-bold"><i class="bi bi-clock-history me-1"></i> Shift</label>
-        <select id="filterShift" class="form-select" onchange="filterData()">
-          <option value="">-- Semua Shift --</option>
-          <option value="1">Shift 1</option>
-          <option value="2">Shift 2</option>
-          <option value="3">Shift 3</option>
-        </select>
-      </div>
-
-      <div class="col-md-8">
+      <div class="col-12">
         <label class="form-label fw-bold"><i class="bi bi-search me-1"></i> Cari Kamera / Detail Lokasi</label>
         <input type="text" id="searchKeyword" class="form-control" placeholder="Ketik nama kamera atau lokasi..." onkeyup="filterData()" />
-      </div>
-
-      <div class="col-md-4">
-        <label class="form-label fw-bold"><i class="bi bi-person-badge me-1"></i> Filter Petugas Jaga</label>
-        <select id="inspectorName" class="form-select">
-          <option value="Semua Petugas">-- Semua Petugas --</option>
-          <option value="Achmad Faisol">Achmad Faisol</option>
-          <option value="Supriyono">Supriyono</option>
-          <option value="Seno Tribowo">Seno Tribowo</option>
-          <option value="Agus Susanto">Agus Susanto</option>
-        </select>
       </div>
     </div>
   </div>
@@ -163,19 +128,17 @@
       <table class="table table-hover align-middle" id="cctvTable">
         <thead class="table-dark sticky-top">
           <tr>
-            <th width="5%">No</th>
-            <th width="12%">Area</th>
-            <th width="18%">Nama Kamera</th>
-            <th width="25%">Detail Lokasi</th>
-            <th width="10%">Jadwal</th>
-            <th width="8%">Shift</th>
-            <th width="12%">Kondisi</th>
-            <th width="10%">Rekaman Video</th>
+            <th width="6%">No</th>
+            <th width="15%">Area</th>
+            <th width="22%">Nama Kamera</th>
+            <th width="32%">Detail Lokasi</th>
+            <th width="13%">Kondisi</th>
+            <th width="12%">Rekaman Video</th>
           </tr>
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="8" class="text-center py-4 text-muted">
+            <td colspan="6" class="text-center py-4 text-muted">
               <div class="spinner-border text-primary mb-2" role="status"></div>
               <div>Memuat data live langsung dari Google Sheets...</div>
             </td>
@@ -258,8 +221,6 @@ function loadSheetData() {
             area: item.area || "-",
             kamera: item.kamera || "-",
             lokasi: item.lokasi || "-",
-            hari: (item.hari || "").toString().toUpperCase(),
-            shift: (item.shift || "").toString().trim(),
             statusExist: (item.keterangan || "Normal").toString().trim(),
             videoExist: videoLink
           };
@@ -272,7 +233,7 @@ function loadSheetData() {
     .catch(err => {
       document.getElementById("loadingStatus").style.display = "none";
       document.getElementById("tableBody").innerHTML = `
-        <tr><td colspan="8" class="text-center py-4 text-danger fw-bold">Gagal memuat data live dari Google Sheets. Pastikan koneksi internet stabil.</td></tr>
+        <tr><td colspan="6" class="text-center py-4 text-danger fw-bold">Gagal memuat data live dari Google Sheets. Pastikan koneksi internet stabil.</td></tr>
       `;
     });
 }
@@ -282,7 +243,7 @@ function renderTable(data) {
   tbody.innerHTML = "";
 
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Data tidak ditemukan</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Data tidak ditemukan</td></tr>`;
     document.getElementById("totalRecords").innerText = 0;
     updateKPI([]);
     return;
@@ -301,8 +262,6 @@ function renderTable(data) {
       <td><span class="badge bg-secondary">${item.area}</span></td>
       <td class="fw-semibold">${item.kamera}</td>
       <td><small class="text-muted">${item.lokasi}</small></td>
-      <td><span class="badge bg-info text-dark">${item.hari}</span></td>
-      <td><span class="badge bg-warning text-dark">Shift ${item.shift}</span></td>
       <td>
         <span class="badge p-2 w-100 ${badgeClass}">
           ${item.statusExist}
@@ -338,8 +297,7 @@ function stopModalVideo() {
 function getPeriodeData() {
   return {
     bulan: document.getElementById("filterBulan").value,
-    minggu: document.getElementById("filterMinggu").value,
-    petugas: document.getElementById("inspectorName").value
+    minggu: document.getElementById("filterMinggu").value
   };
 }
 
@@ -352,16 +310,13 @@ function exportTableToExcel() {
     "AREA": r.area,
     "NAMA KAMERA": r.kamera,
     "DETAIL LOKASI": r.lokasi,
-    "JADWAL PENGECEKAN": r.hari,
-    "SHIFT": r.shift,
     "KONDISI / STATUS": r.statusExist,
-    "LINK VIDEO CLOUDINARY": r.videoExist || "-",
-    "PETUGAS JAGA": periode.petugas
+    "LINK VIDEO CLOUDINARY": r.videoExist || "-"
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(excelData);
   worksheet['!cols'] = [
-    { wch: 6 }, { wch: 18 }, { wch: 25 }, { wch: 35 }, { wch: 18 }, { wch: 8 }, { wch: 18 }, { wch: 60 }, { wch: 20 }
+    { wch: 6 }, { wch: 18 }, { wch: 25 }, { wch: 35 }, { wch: 18 }, { wch: 60 }
   ];
 
   const workbook = XLSX.utils.book_new();
@@ -373,9 +328,9 @@ function exportTableToCSV() {
   if (masterData.length === 0) return alert("Tidak ada data untuk diunduh!");
   const periode = getPeriodeData();
   
-  let csvContent = "data:text/csv;charset=utf-8,No,Area,Nama Kamera,Detail Lokasi,Hari,Shift,Kondisi,Link Video,Petugas\n";
+  let csvContent = "data:text/csv;charset=utf-8,No,Area,Nama Kamera,Detail Lokasi,Kondisi,Link Video\n";
   masterData.forEach(r => {
-    csvContent += `"${r.no}","${r.area}","${r.kamera}","${r.lokasi}","${r.hari}","${r.shift}","${r.statusExist}","${r.videoExist}","${periode.petugas}"\n`;
+    csvContent += `"${r.no}","${r.area}","${r.kamera}","${r.lokasi}","${r.statusExist}","${r.videoExist}"\n`;
   });
 
   const encodedUri = encodeURI(csvContent);
@@ -388,20 +343,14 @@ function exportTableToCSV() {
 }
 
 function filterData() {
-  const hari = document.getElementById("filterHari").value.toUpperCase();
-  const shift = document.getElementById("filterShift").value;
   const keyword = document.getElementById("searchKeyword").value.toLowerCase();
 
   const filtered = masterData.filter((item) => {
-    const matchHari = !hari || item.hari.includes(hari);
-    const matchShift = !shift || item.shift === shift;
-    const matchKeyword = !keyword || 
+    return !keyword || 
       item.area.toLowerCase().includes(keyword) || 
       item.kamera.toLowerCase().includes(keyword) || 
       item.lokasi.toLowerCase().includes(keyword) ||
       item.no.toString().includes(keyword);
-
-    return matchHari && matchShift && matchKeyword;
   });
 
   renderTable(filtered);
