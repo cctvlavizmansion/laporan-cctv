@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Input Laporan CCTV - Petugas Jaga LaViz Mansion</title>
+  <!-- Bootstrap 5 & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+  <!-- SheetJS untuk Export Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; }
+    .header-logo-large { display: inline-block; padding: 5px; }
+    .card-custom { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .table-responsive { max-height: 600px; overflow-y: auto; }
+    .progress { display: none; height: 6px; margin-top: 6px; }
+
+    /* Pewarnaan Dropdown Status */
+    .status-normal { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
+    .status-danger { background-color: #f8d7da !important; color: #842029 !important; font-weight: bold; }
+    .status-warning { background-color: #fff3cd !important; color: #664d03 !important; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container my-4">
+  <!-- Header dengan Logo Besar -->
+  <div class="header-box text-center shadow">
+    <div class="header-logo-large mx-auto mb-3">
+      <img src="05-Logo-la-Viz_Gold-removebg-preview.png" alt="Logo LaViz Mansion" style="max-width: 280px; width: 100%; height: auto; object-fit: contain; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));" />
+    </div>
+    <h3 class="fw-bold mb-1">PANEL INPUT PETUGAS JAGA - CCTV LAVIZ MANSION</h3>
+    <p class="mb-0 small text-white-50">Sistem Pelaporan, Inspeksi Harian & Upload Video Cloud Storage</p>
+  </div>
+
+  <!-- Panel Filter & Periode -->
+  <div class="card card-custom p-3 mb-3">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label fw-bold text-primary"><i class="bi bi-calendar3 me-1"></i> Bulan Laporan</label>
+        <select id="filterBulan" class="form-select border-primary">
+          <option value="Januari">Januari</option>
+          <option value="Februari">Februari</option>
+          <option value="Maret">Maret</option>
+          <option value="April">April</option>
+          <option value="Mei">Mei</option>
+          <option value="Juni">Juni</option>
+          <option value="Juli">Juli</option>
+          <option value="Agustus">Agustus</option>
+          <option value="September">September</option>
+          <option value="Oktober" selected>Oktober</option>
+          <option value="November">November</option>
+          <option value="Desember">Desember</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold text-primary"><i class="bi bi-calendar-week me-1"></i> Periode Minggu</label>
+        <select id="filterMinggu" class="form-select border-primary">
+          <option value="Minggu 1" selected>Minggu 1</option>
+          <option value="Minggu 2">Minggu 2</option>
+          <option value="Minggu 3">Minggu 3</option>
+          <option value="Minggu 4">Minggu 4</option>
+          <option value="Minggu 5">Minggu 5</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i> Jadwal Hari</label>
+        <select id="filterHari" class="form-select" onchange="filterData()">
+          <option value="">-- Semua Hari --</option>
+          <option value="SENIN">Senin</option>
+          <option value="SELASA">Selasa</option>
+          <option value="RABU">Rabu</option>
+          <option value="KAMIS">Kamis</option>
+          <option value="JUMAT">Jumat</option>
+          <option value="SABTU">Sabtu</option>
+          <option value="MINGGU">Minggu</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold"><i class="bi bi-clock-history me-1"></i> Shift</label>
+        <select id="filterShift" class="form-select" onchange="filterData()">
+          <option value="">-- Semua Shift --</option>
+          <option value="1">Shift 1</option>
+          <option value="2">Shift 2</option>
+          <option value="3">Shift 3</option>
+        </select>
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label fw-bold"><i class="bi bi-search me-1"></i> Cari Titik / Lokasi</label>
+        <input type="text" id="searchKeyword" class="form-control" placeholder="Cari nama kamera atau detail lokasi..." onkeyup="filterData()" />
+      </div>
+
+      <!-- Dropdown Petugas Jaga -->
+      <div class="col-md-4">
+        <label class="form-label fw-bold text-primary"><i class="bi bi-person-badge me-1"></i> Petugas Jaga</label>
+        <select id="inspectorName" class="form-select border-primary">
+          <option value="Achmad Faisol">Achmad Faisol</option>
+          <option value="Supriyono">Supriyono</option>
+          <option value="Seno Tribowo">Seno Tribowo</option>
+          <option value="Agus Susanto">Agus Susanto</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel Multi Upload 5 Video -->
+  <div class="card card-custom p-3 mb-4 bg-light border-primary">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div>
+        <h6 class="fw-bold text-primary mb-1"><i class="bi bi-cloud-upload-fill me-1"></i> Fitur Upload Massal (Maksimal 5 Video)</h6>
+        <small class="text-muted">Pilih hingga 5 video sekaligus. Jika tidak ada titik yang dicentang, sistem otomatis mengunggah ke 5 baris teratas.</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <input type="file" id="batchVideoInput" class="form-control form-control-sm" accept="video/*" multiple onchange="handleBatchUpload(event)" />
+        <span id="batchCountBadge" class="badge bg-secondary">0 Kamera Dipilih</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ringkasan Status & Export -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fw-bold text-secondary">
+      Menampilkan <span id="totalRecords" class="badge bg-primary">0</span> Titik Kamera
+      <span id="loadingStatus" class="ms-2 spinner-border spinner-border-sm text-primary" role="status"></span>
+    </span>
+    <div>
+      <button class="btn btn-success btn-sm me-1" onclick="exportTableToExcel()"><i class="bi bi-file-earmark-excel-fill me-1"></i>Download Excel (.xlsx)</button>
+      <button class="btn btn-outline-success btn-sm me-1" onclick="exportTableToCSV()"><i class="bi bi-file-earmark-text me-1"></i>Download CSV</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
+    </div>
+  </div>
+
+  <!-- Tabel Data -->
+  <div class="card card-custom p-3">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle" id="cctvTable">
+        <thead class="table-dark sticky-top">
+          <tr>
+            <th width="4%"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" /></th>
+            <th width="5%">No</th>
+            <th width="11%">Area</th>
+            <th width="15%">Nama Kamera</th>
+            <th width="22%">Detail Lokasi</th>
+            <th width="9%">Jadwal</th>
+            <th width="7%">Shift</th>
+            <th width="27%">Kondisi & Video</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="8" class="text-center py-4 text-muted">
+              <div class="spinner-border text-primary mb-2" role="status"></div>
+              <div>Memuat data live langsung dari Google Sheets...</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nonton Video -->
+<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="videoModalTitle"><i class="bi bi-camera-reels me-2"></i>Pemutaran Rekaman CCTV</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopModalVideo()"></button>
+      </div>
+      <div class="modal-body p-0 bg-black text-center">
+        <video id="modalVideoPlayer" controls style="max-width: 100%; max-height: 500px;" autoplay></video>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+const CLOUDINARY_CLOUD_NAME = "qpgm2usi";
+const CLOUDINARY_UPLOAD_PRESET = "riyojafar";
+const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNOL-gEwlXR7yfwIXNbd-ooI4469U1wJEA5fnwb6VQnmCMnt6GH81unnirWtaWGCWV7g/exec";
+
+let masterData = [];
+
+function extractUrl(text) {
+  if (!text) return "";
+  const match = text.match(/(https?:\/\/[^\s\)]+)/i);
+  return match ? match[0] : "";
+}
+
+function applyStatusColor(selectEl) {
+  selectEl.classList.remove("status-normal", "status-danger", "status-warning");
+  const val = selectEl.value.toUpperCase();
+  if (val === "NORMAL") {
+    selectEl.classList.add("status-normal");
+  } else if (val === "ADA KENDALA") {
+    selectEl.classList.add("status-warning");
+  } else {
+    selectEl.classList.add("status-danger");
+  }
+}
+
+function loadSheetData() {
+  document.getElementById("loadingStatus").style.display = "inline-block";
+
+  fetch(GOOGLE_APPS_SCRIPT_URL)
+    .then(response => response.json())
+    .then(res => {
+      document.getElementById("loadingStatus").style.display = "none";
+      if (res.status === "success" && res.data) {
+        masterData = res.data.map((item, index) => {
+          const itemNo = item.no || (index + 1);
+          let videoLink = extractUrl(item.video);
+          
+          return {
+            no: itemNo,
+            area: item.area || "-",
+            kamera: item.kamera || "-",
+            lokasi: item.lokasi || "-",
+            hari: (item.hari || "").toString().toUpperCase(),
+            shift: (item.shift || "").toString().trim(),
+            statusExist: (item.keterangan || "Normal").toString().trim(),
+            videoExist: videoLink
+          };
+        });
+        renderTable(masterData);
+      } else {
+        throw new Error("Gagal mengambil data");
+      }
+    })
+    .catch(err => {
+      document.getElementById("loadingStatus").style.display = "none";
+      document.getElementById("tableBody").innerHTML = `
+        <tr><td colspan="8" class="text-center py-4 text-danger fw-bold">Gagal memuat data live dari Google Sheets. Pastikan akses Apps Script diset ke 'Anyone'.</td></tr>
+      `;
+    });
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
+
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Data tidak ditemukan</td></tr>`;
+    document.getElementById("totalRecords").innerText = 0;
+    return;
+  }
+
+  document.getElementById("totalRecords").innerText = data.length;
+
+  data.forEach((item, idx) => {
+    const itemNo = item.no || (idx + 1);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="checkbox" class="row-checkbox" value="${itemNo}" onchange="updateBatchBadge()" /></td>
+      <td class="fw-bold">${itemNo}</td>
+      <td><span class="badge bg-secondary">${item.area}</span></td>
+      <td class="fw-semibold">${item.kamera}</td>
+      <td><small>${item.lokasi}</small></td>
+      <td><span class="badge bg-info text-dark">${item.hari}</span></td>
+      <td><span class="badge bg-warning text-dark">Shift ${item.shift}</span></td>
+      <td>
+        <div class="row g-1 align-items-center">
+          <div class="col-6">
+            <select class="form-select form-select-sm" id="status-${itemNo}" onchange="updateStatusToSheets(${itemNo}); applyStatusColor(this)">
+              <option value="Normal" ${item.statusExist.toUpperCase() === 'NORMAL' ? 'selected' : ''}>Normal</option>
+              <option value="NOISE" ${item.statusExist.toUpperCase() === 'NOISE' ? 'selected' : ''}>NOISE</option>
+              <option value="GETAR" ${item.statusExist.toUpperCase() === 'GETAR' ? 'selected' : ''}>GETAR</option>
+              <option value="BURAM" ${item.statusExist.toUpperCase() === 'BURAM' ? 'selected' : ''}>BURAM</option>
+              <option value="MATI" ${item.statusExist.toUpperCase() === 'MATI' ? 'selected' : ''}>MATI</option>
+              <option value="Ada Kendala" ${item.statusExist.toUpperCase() === 'ADA KENDALA' ? 'selected' : ''}>Ada Kendala</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadSingleVideo(event, ${itemNo})" />
+          </div>
+        </div>
+
+        <div class="progress" id="progress-container-${itemNo}">
+          <div id="progress-bar-${itemNo}" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+        </div>
+
+        <div id="upload-status-${itemNo}" class="mt-1 d-flex gap-1 flex-wrap align-items-center">
+          ${item.videoExist ? `
+            <button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-outline-primary btn-sm py-0 px-2 mt-1"><i class="bi bi-play-circle me-1"></i>Putar Video</button>
+            <a href="${item.videoExist}" download="CCTV_No_${itemNo}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download MP4</a>
+          ` : '<span class="badge bg-danger text-wrap mt-1">Belum ada video</span>'}
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    const selectElem = document.getElementById(`status-${itemNo}`);
+    if (selectElem) applyStatusColor(selectElem);
+  });
+}
+
+function playVideoModal(url, cameraName) {
+  document.getElementById("videoModalTitle").innerText = `Rekaman CCTV: ${cameraName}`;
+  const player = document.getElementById("modalVideoPlayer");
+  player.src = url;
+  const myModal = new bootstrap.Modal(document.getElementById('videoModal'));
+  myModal.show();
+}
+
+function stopModalVideo() {
+  const player = document.getElementById("modalVideoPlayer");
+  player.pause();
+  player.src = "";
+}
+
+function updateBatchBadge() {
+  const selected = document.querySelectorAll('.row-checkbox:checked');
+  document.getElementById('batchCountBadge').innerText = `${selected.length} Kamera Dipilih`;
+}
+
+function toggleSelectAll(master) {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  checkboxes.forEach(cb => cb.checked = master.checked);
+  updateBatchBadge();
+}
+
+function handleBatchUpload(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  if (files.length > 5) {
+    alert("Maksimal upload sekaligus adalah 5 video!");
+    event.target.value = "";
+    return;
+  }
+
+  let selectedCheckboxes = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+  if (selectedCheckboxes.length === 0) {
+    const allCheckboxes = Array.from(document.querySelectorAll('.row-checkbox'));
+    selectedCheckboxes = allCheckboxes.slice(0, files.length);
+  }
+
+  const count = Math.min(files.length, selectedCheckboxes.length);
+  for (let i = 0; i < count; i++) {
+    const itemNo = selectedCheckboxes[i].value;
+    const file = files[i];
+    executeUploadProcess(file, itemNo);
+  }
+}
+
+function uploadSingleVideo(event, id) {
+  const file = event.target.files[0];
+  if (file) executeUploadProcess(file, id);
+}
+
+function executeUploadProcess(file, id) {
+  const progressContainer = document.getElementById(`progress-container-${id}`);
+  const progressBar = document.getElementById(`progress-bar-${id}`);
+  const statusText = document.getElementById(`upload-status-${id}`);
+  const statusVal = document.getElementById(`status-${id}`).value;
+  const periode = getPeriodeData();
+
+  progressContainer.style.display = "flex";
+  progressBar.style.width = "0%";
+  statusText.innerHTML = `<small class="text-primary fw-bold">Mengunggah...</small>`;
+
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", url, true);
+
+  xhr.upload.onprogress = function (e) {
+    if (e.lengthComputable) {
+      const percentComplete = Math.round((e.loaded / e.total) * 100);
+      progressBar.style.width = percentComplete + "%";
+      statusText.innerHTML = `<small class="text-primary fw-bold">Mengunggah: ${percentComplete}%</small>`;
+    }
+  };
+
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      const response = JSON.parse(xhr.responseText);
+      const videoUrl = response.secure_url;
+
+      statusText.innerHTML = `
+        <button onclick="playVideoModal('${videoUrl}', 'No ${id}')" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Putar Video</button>
+        <a href="${videoUrl}" download="CCTV_No_${id}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download MP4</a>
+      `;
+      sendToGoogleSheets({ no: id, status: statusVal, videoUrl: videoUrl, bulan: periode.bulan, minggu: periode.minggu });
+    } else {
+      statusText.innerHTML = `<small class="text-danger">Gagal mengunggah!</small>`;
+    }
+  };
+
+  xhr.onerror = function () {
+    statusText.innerHTML = `<small class="text-danger">Kesalahan koneksi!</small>`;
+  };
+
+  xhr.send(formData);
+}
+
+function getPeriodeData() {
+  return {
+    bulan: document.getElementById("filterBulan").value,
+    minggu: document.getElementById("filterMinggu").value,
+    petugas: document.getElementById("inspectorName").value
+  };
+}
+
+function updateStatusToSheets(id) {
+  const statusVal = document.getElementById(`status-${id}`).value;
+  const periode = getPeriodeData();
+  sendToGoogleSheets({ no: id, status: statusVal, bulan: periode.bulan, minggu: periode.minggu });
+}
+
+function sendToGoogleSheets(payload) {
+  fetch(GOOGLE_APPS_SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).catch(err => console.error("Error sync to Sheets:", err));
+}
+
+function exportTableToExcel() {
+  if (masterData.length === 0) return alert("Tidak ada data untuk diunduh!");
+  const periode = getPeriodeData();
+
+  const excelData = masterData.map(r => ({
+    "NO": r.no,
+    "AREA": r.area,
+    "NAMA KAMERA": r.kamera,
+    "DETAIL LOKASI": r.lokasi,
+    "JADWAL PENGECEKAN": r.hari,
+    "SHIFT": r.shift,
+    "KONDISI / STATUS": r.statusExist,
+    "LINK VIDEO CLOUDINARY": r.videoExist || "-",
+    "PETUGAS JAGA": periode.petugas
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  worksheet['!cols'] = [
+    { wch: 6 }, { wch: 18 }, { wch: 25 }, { wch: 35 }, { wch: 18 }, { wch: 8 }, { wch: 18 }, { wch: 60 }, { wch: 20 }
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, `${periode.bulan}_${periode.minggu}`);
+  XLSX.writeFile(workbook, `Laporan_CCTV_LaViz_${periode.bulan}_${periode.minggu}.xlsx`);
+}
+
+function exportTableToCSV() {
+  if (masterData.length === 0) return alert("Tidak ada data untuk diunduh!");
+  const periode = getPeriodeData();
+  
+  let csvContent = "data:text/csv;charset=utf-8,No,Area,Nama Kamera,Detail Lokasi,Hari,Shift,Kondisi,Link Video,Petugas\n";
+  masterData.forEach(r => {
+    csvContent += `"${r.no}","${r.area}","${r.kamera}","${r.lokasi}","${r.hari}","${r.shift}","${r.statusExist}","${r.videoExist}","${periode.petugas}"\n`;
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Rekap_CCTV_LaViz_${periode.bulan}_${periode.minggu}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function filterData() {
+  const hari = document.getElementById("filterHari").value.toUpperCase();
+  const shift = document.getElementById("filterShift").value;
+  const keyword = document.getElementById("searchKeyword").value.toLowerCase();
+
+  const filtered = masterData.filter((item) => {
+    const matchHari = !hari || item.hari.includes(hari);
+    const matchShift = !shift || item.shift === shift;
+    const matchKeyword = !keyword || 
+      item.area.toLowerCase().includes(keyword) || 
+      item.kamera.toLowerCase().includes(keyword) || 
+      item.lokasi.toLowerCase().includes(keyword) ||
+      item.no.toString().includes(keyword);
+
+    return matchHari && matchShift && matchKeyword;
+  });
+
+  renderTable(filtered);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadSheetData();
+});
+</script>
+</body>
+</html>
