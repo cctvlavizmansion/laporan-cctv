@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; }
+    .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; position: relative; }
     .header-logo-large { display: inline-block; padding: 5px; }
     .card-custom { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .table-responsive { max-height: 600px; overflow-y: auto; }
@@ -29,18 +29,33 @@
     .status-normal { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
     .status-danger { background-color: #f8d7da !important; color: #842029 !important; font-weight: bold; }
     .status-warning { background-color: #fff3cd !important; color: #664d03 !important; font-weight: bold; }
+
+    /* Sembunyikan elemen input saat dalam Mode Pantau Umum */
+    body.mode-pantau .petugas-only {
+      display: none !important;
+    }
   </style>
 </head>
-<body>
+<body class="mode-pantau">
 
 <div class="container my-4">
   <!-- Header dengan Logo Besar -->
   <div class="header-box text-center shadow">
+    <!-- Tombol Switch Mode di Kanan Atas Header -->
+    <div class="position-absolute top-0 end-0 p-3">
+      <button id="btnToggleMode" class="btn btn-light btn-sm fw-bold shadow-sm" onclick="toggleRoleMode()">
+        <i class="bi bi-lock-fill text-primary me-1"></i> Mode Input Petugas
+      </button>
+    </div>
+
     <div class="header-logo-large mx-auto mb-3">
       <img src="05-Logo-la-Viz_Gold-removebg-preview.png" alt="Logo LaViz Mansion" style="max-width: 280px; width: 100%; height: auto; object-fit: contain; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));" />
     </div>
-    <h3 class="fw-bold mb-1">LAPORAN KONDISI DAN REKAMAN CCTV LAVIZ MANSION</h3>
+    <h3 class="fw-bold mb-1" id="mainHeaderTitle">LAPORAN KONDISI DAN REKAMAN CCTV LAVIZ MANSION</h3>
     <p class="mb-0 small text-white-50">Sistem Pelaporan, Inspeksi Harian & Dokumentasi Cloud Storage</p>
+    <div id="roleBadgeContainer" class="mt-2">
+      <span class="badge bg-warning text-dark fs-6"><i class="bi bi-eye-fill me-1"></i>MODE PANTAUMU (READ-ONLY)</span>
+    </div>
   </div>
 
   <!-- Panel KPI Ringkasan Statistik -->
@@ -145,8 +160,8 @@
     </div>
   </div>
 
-  <!-- Panel Multi Upload 5 Video -->
-  <div class="card card-custom p-3 mb-4 bg-light border-primary">
+  <!-- Panel Multi Upload 5 Video (Khusus Petugas) -->
+  <div class="card card-custom p-3 mb-4 bg-light border-primary petugas-only">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
         <h6 class="fw-bold text-primary mb-1"><i class="bi bi-cloud-upload-fill me-1"></i> Fitur Upload Massal (Maksimal 5 Video)</h6>
@@ -178,7 +193,7 @@
       <table class="table table-hover align-middle" id="cctvTable">
         <thead class="table-dark sticky-top">
           <tr>
-            <th width="4%"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" /></th>
+            <th width="4%" class="petugas-only"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" /></th>
             <th width="5%">No</th>
             <th width="11%">Area</th>
             <th width="15%">Nama Kamera</th>
@@ -225,6 +240,26 @@ const CLOUDINARY_UPLOAD_PRESET = "riyojafar";
 const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNOL-gEwlXR7yfwIXNbd-ooI4469U1wJEA5fnwb6VQnmCMnt6GH81unnirWtaWGCWV7g/exec";
 
 let masterData = [];
+let isPetugasMode = false; // Default: Mode Pantau Umum / Pimpinan
+
+function toggleRoleMode() {
+  isPetugasMode = !isPetugasMode;
+  const btn = document.getElementById("btnToggleMode");
+  const badge = document.getElementById("roleBadgeContainer");
+
+  if (isPetugasMode) {
+    document.body.classList.remove("mode-pantau");
+    btn.className = "btn btn-warning btn-sm fw-bold shadow-sm text-dark";
+    btn.innerHTML = '<i class="bi bi-unlock-fill me-1"></i> Mode Pantau Umum';
+    badge.innerHTML = '<span class="badge bg-success fs-6"><i class="bi bi-pencil-square me-1"></i>MODE INPUT PETUGAS AKTIF</span>';
+  } else {
+    document.body.classList.add("mode-pantau");
+    btn.className = "btn btn-light btn-sm fw-bold shadow-sm";
+    btn.innerHTML = '<i class="bi bi-lock-fill text-primary me-1"></i> Mode Input Petugas';
+    badge.innerHTML = '<span class="badge bg-warning text-dark fs-6"><i class="bi bi-eye-fill me-1"></i>MODE PANTAU UMUM (READ-ONLY)</span>';
+  }
+  renderTable(masterData);
+}
 
 function extractUrl(text) {
   if (!text) return "";
@@ -316,8 +351,16 @@ function renderTable(data) {
   data.forEach((item, idx) => {
     const itemNo = item.no || (idx + 1);
     const tr = document.createElement("tr");
+
+    const disabledAttr = !isPetugasMode ? 'disabled' : '';
+    const fileUploadHtml = !isPetugasMode ? '' : `
+      <div class="col-6">
+        <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadSingleVideo(event, ${itemNo})" />
+      </div>
+    `;
+
     tr.innerHTML = `
-      <td><input type="checkbox" class="row-checkbox" value="${itemNo}" onchange="updateBatchBadge()" /></td>
+      <td class="petugas-only"><input type="checkbox" class="row-checkbox" value="${itemNo}" onchange="updateBatchBadge()" /></td>
       <td class="fw-bold">${itemNo}</td>
       <td><span class="badge bg-secondary">${item.area}</span></td>
       <td class="fw-semibold">${item.kamera}</td>
@@ -326,8 +369,8 @@ function renderTable(data) {
       <td><span class="badge bg-warning text-dark">Shift ${item.shift}</span></td>
       <td>
         <div class="row g-1 align-items-center">
-          <div class="col-6">
-            <select class="form-select form-select-sm" id="status-${itemNo}" onchange="updateStatusToSheets(${itemNo}); applyStatusColor(this)">
+          <div class="${!isPetugasMode ? 'col-12' : 'col-6'}">
+            <select class="form-select form-select-sm" id="status-${itemNo}" ${disabledAttr} onchange="updateStatusToSheets(${itemNo}); applyStatusColor(this)">
               <option value="Normal" ${item.statusExist.toUpperCase() === 'NORMAL' ? 'selected' : ''}>Normal</option>
               <option value="NOISE" ${item.statusExist.toUpperCase() === 'NOISE' ? 'selected' : ''}>NOISE</option>
               <option value="GETAR" ${item.statusExist.toUpperCase() === 'GETAR' ? 'selected' : ''}>GETAR</option>
@@ -336,9 +379,7 @@ function renderTable(data) {
               <option value="Ada Kendala" ${item.statusExist.toUpperCase() === 'ADA KENDALA' ? 'selected' : ''}>Ada Kendala</option>
             </select>
           </div>
-          <div class="col-6">
-            <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadSingleVideo(event, ${itemNo})" />
-          </div>
+          ${fileUploadHtml}
         </div>
 
         <div class="progress" id="progress-container-${itemNo}">
@@ -386,6 +427,7 @@ function toggleSelectAll(master) {
 }
 
 function handleBatchUpload(event) {
+  if (!isPetugasMode) return;
   const files = event.target.files;
   if (!files || files.length === 0) return;
 
@@ -410,6 +452,7 @@ function handleBatchUpload(event) {
 }
 
 function uploadSingleVideo(event, id) {
+  if (!isPetugasMode) return;
   const file = event.target.files[0];
   if (file) executeUploadProcess(file, id);
 }
@@ -448,7 +491,7 @@ function executeUploadProcess(file, id) {
 
       statusText.innerHTML = `
         <button onclick="playVideoModal('${videoUrl}', 'No ${id}')" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Putar Video</button>
-        <a href="${videoUrl}" download="CCTV_No_${id}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download MP4</a>
+        <a href="${videoUrl}" download="CCTV_No_${id}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download MP4</a>
       `;
       sendToGoogleSheets({ no: id, status: statusVal, videoUrl: videoUrl, bulan: periode.bulan, minggu: periode.minggu });
     } else {
@@ -472,6 +515,7 @@ function getPeriodeData() {
 }
 
 function updateStatusToSheets(id) {
+  if (!isPetugasMode) return;
   const statusVal = document.getElementById(`status-${id}`).value;
   const periode = getPeriodeData();
   sendToGoogleSheets({ no: id, status: statusVal, bulan: periode.bulan, minggu: periode.minggu });
