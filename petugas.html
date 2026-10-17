@@ -358,6 +358,14 @@ function uploadSingleVideo(event, id) {
 }
 
 function executeUploadProcess(file, id) {
+  // Pengecekan jika file berformat .dav
+  const fileName = file.name.toLowerCase();
+  if (fileName.endsWith('.dav')) {
+    alert(`File "${file.name}" berformat .DAV (file mentah DVR).\n\nSilakan convert/export dulu file tersebut ke format MP4 melalui SmartPSS atau VLC Player sebelum di-upload agar bisa diputar di web.`);
+    return;
+  }
+
+  // Lanjutan proses upload...
   const progressContainer = document.getElementById(`progress-container-${id}`);
   const progressBar = document.getElementById(`progress-bar-${id}`);
   const statusText = document.getElementById(`upload-status-${id}`);
@@ -368,7 +376,7 @@ function executeUploadProcess(file, id) {
   progressBar.style.width = "0%";
   statusText.innerHTML = `<small class="text-primary fw-bold">Mengunggah...</small>`;
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
@@ -391,7 +399,7 @@ function executeUploadProcess(file, id) {
 
       statusText.innerHTML = `
         <button onclick="playVideoModal('${videoUrl}', 'No ${id}')" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Putar Video</button>
-        <a href="${videoUrl}" download="CCTV_No_${id}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download MP4</a>
+        <a href="${videoUrl}" download="CCTV_No_${id}" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download Video</a>
       `;
       sendToGoogleSheets({ no: id, status: statusVal, videoUrl: videoUrl, bulan: periode.bulan, minggu: periode.minggu });
     } else {
