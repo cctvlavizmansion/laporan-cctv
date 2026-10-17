@@ -113,11 +113,11 @@
   <div class="card card-custom p-3 mb-4 bg-light border-primary">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
-        <h6 class="fw-bold text-primary mb-1"><i class="bi bi-cloud-upload-fill me-1"></i> Fitur Upload Massal (Maksimal 5 Video)</h6>
-        <small class="text-muted">Pilih hingga 5 video sekaligus. Jika tidak ada titik yang dicentang, sistem otomatis mengunggah ke 5 baris teratas.</small>
+        <h6 class="fw-bold text-primary mb-1"><i class="bi bi-cloud-upload-fill me-1"></i> Fitur Upload Massal Semua Format Video (Maksimal 5 File)</h6>
+        <small class="text-muted">Mendukung MP4, MOV, AVI, MKV, hingga file mentah CCTV (.DAV).</small>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <input type="file" id="batchVideoInput" class="form-control form-control-sm" accept="video/*" multiple onchange="handleBatchUpload(event)" />
+        <input type="file" id="batchVideoInput" class="form-control form-control-sm" accept="*/*" multiple onchange="handleBatchUpload(event)" />
         <span id="batchCountBadge" class="badge bg-secondary">0 Kamera Dipilih</span>
       </div>
     </div>
@@ -196,6 +196,12 @@ function extractUrl(text) {
   return match ? match[0] : "";
 }
 
+function isPlayableVideo(url) {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return lower.includes(".mp4") || lower.includes(".webm") || lower.includes(".mov") || lower.includes("/video/upload/");
+}
+
 function applyStatusColor(selectEl) {
   selectEl.classList.remove("status-normal", "status-danger", "status-warning");
   const val = selectEl.value.toUpperCase();
@@ -259,6 +265,23 @@ function renderTable(data) {
   data.forEach((item, idx) => {
     const itemNo = item.no || (idx + 1);
     const tr = document.createElement("tr");
+
+    let actionButtonsHtml = '<small class="text-muted" style="font-size: 11px;">Belum ada video</small>';
+    if (item.videoExist) {
+      if (isPlayableVideo(item.videoExist)) {
+        actionButtonsHtml = `
+          <button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-outline-primary btn-sm py-0 px-2 mt-1"><i class="bi bi-play-circle me-1"></i>Putar Video</button>
+          <a href="${item.videoExist}" download="CCTV_No_${itemNo}" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download Video</a>
+        `;
+      } else {
+        // Khusus File Mentah seperti .DAV
+        actionButtonsHtml = `
+          <span class="badge bg-warning text-dark mt-1" style="font-size: 10px;"><i class="bi bi-file-earmark-zip-fill me-1"></i>File Mentah CCTV</span>
+          <a href="${item.videoExist}" target="_blank" download="CCTV_No_${itemNo}.dav" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download File (.DAV)</a>
+        `;
+      }
+    }
+
     tr.innerHTML = `
       <td><input type="checkbox" class="row-checkbox" value="${itemNo}" onchange="updateBatchBadge()" /></td>
       <td class="fw-bold">${itemNo}</td>
@@ -280,7 +303,7 @@ function renderTable(data) {
             </select>
           </div>
           <div class="col-6">
-            <input type="file" class="form-control form-control-sm" accept="video/*" onchange="uploadSingleVideo(event, ${itemNo})" />
+            <input type="file" class="form-control form-control-sm" accept="*/*" onchange="uploadSingleVideo(event, ${itemNo})" />
           </div>
         </div>
 
@@ -289,10 +312,7 @@ function renderTable(data) {
         </div>
 
         <div id="upload-status-${itemNo}" class="mt-1 d-flex gap-1 flex-wrap align-items-center">
-          ${item.videoExist ? `
-            <button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-outline-primary btn-sm py-0 px-2 mt-1"><i class="bi bi-play-circle me-1"></i>Putar Video</button>
-            <a href="${item.videoExist}" download="CCTV_No_${itemNo}.mp4" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download MP4</a>
-          ` : '<span class="badge bg-danger text-wrap mt-1">Belum ada video</span>'}
+          ${actionButtonsHtml}
         </div>
       </td>
     `;
@@ -333,7 +353,7 @@ function handleBatchUpload(event) {
   if (!files || files.length === 0) return;
 
   if (files.length > 5) {
-    alert("Maksimal upload sekaligus adalah 5 video!");
+    alert("Maksimal upload sekaligus adalah 5 file!");
     event.target.value = "";
     return;
   }
@@ -358,14 +378,6 @@ function uploadSingleVideo(event, id) {
 }
 
 function executeUploadProcess(file, id) {
-  // Pengecekan jika file berformat .dav
-  const fileName = file.name.toLowerCase();
-  if (fileName.endsWith('.dav')) {
-    alert(`File "${file.name}" berformat .DAV (file mentah DVR).\n\nSilakan convert/export dulu file tersebut ke format MP4 melalui SmartPSS atau VLC Player sebelum di-upload agar bisa diputar di web.`);
-    return;
-  }
-
-  // Lanjutan proses upload...
   const progressContainer = document.getElementById(`progress-container-${id}`);
   const progressBar = document.getElementById(`progress-bar-${id}`);
   const statusText = document.getElementById(`upload-status-${id}`);
@@ -376,7 +388,13 @@ function executeUploadProcess(file, id) {
   progressBar.style.width = "0%";
   statusText.innerHTML = `<small class="text-primary fw-bold">Mengunggah...</small>`;
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+  const fileName = file.name.toLowerCase();
+  const isDavFile = fileName.endsWith('.dav');
+
+  // Menggunakan endpoint /auto/upload untuk video umum, dan /raw/upload untuk file mentah .DAV
+  const endpointType = isDavFile ? 'raw' : 'auto';
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${endpointType}/upload`;
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
@@ -397,10 +415,18 @@ function executeUploadProcess(file, id) {
       const response = JSON.parse(xhr.responseText);
       const videoUrl = response.secure_url;
 
-      statusText.innerHTML = `
-        <button onclick="playVideoModal('${videoUrl}', 'No ${id}')" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Putar Video</button>
-        <a href="${videoUrl}" download="CCTV_No_${id}" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download Video</a>
-      `;
+      if (isDavFile || !isPlayableVideo(videoUrl)) {
+        statusText.innerHTML = `
+          <span class="badge bg-warning text-dark mt-1" style="font-size: 10px;"><i class="bi bi-file-earmark-zip-fill me-1"></i>File Mentah CCTV</span>
+          <a href="${videoUrl}" target="_blank" download="CCTV_No_${id}.dav" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download File (.DAV)</a>
+        `;
+      } else {
+        statusText.innerHTML = `
+          <button onclick="playVideoModal('${videoUrl}', 'No ${id}')" class="btn btn-success btn-sm py-0 px-2 mt-1"><i class="bi bi-check-circle me-1"></i>Putar Video</button>
+          <a href="${videoUrl}" download="CCTV_No_${id}" class="btn btn-outline-success btn-sm py-0 px-2 mt-1"><i class="bi bi-download me-1"></i>Download Video</a>
+        `;
+      }
+
       sendToGoogleSheets({ no: id, status: statusVal, videoUrl: videoUrl, bulan: periode.bulan, minggu: periode.minggu });
     } else {
       statusText.innerHTML = `<small class="text-danger">Gagal mengunggah!</small>`;
