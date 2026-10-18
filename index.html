@@ -3,28 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal Monitoring CCTV LaViz Mansion</title>
-  <!-- Bootstrap 5 & Icons -->
+  <title>Portal Monitoring CCTV - LaViz Mansion</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
-  <!-- SheetJS untuk Export Excel (.xlsx) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; }
-    .header-logo-large { display: inline-block; padding: 5px; }
     .card-custom { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .table-responsive { max-height: 600px; overflow-y: auto; }
-
-    /* KPI Cards Style */
     .kpi-card { border-radius: 10px; padding: 15px; color: white; transition: transform 0.2s; }
-    .kpi-card:hover { transform: translateY(-3px); }
     .bg-kpi-total { background: linear-gradient(135deg, #6c757d, #495057); }
     .bg-kpi-normal { background: linear-gradient(135deg, #198754, #146c43); }
     .bg-kpi-problem { background: linear-gradient(135deg, #dc3545, #b02a37); }
     .bg-kpi-video { background: linear-gradient(135deg, #0dcaf0, #0aa2c0); }
-
-    /* Badge Status Kondisi */
     .badge-status-normal { background-color: #d1e7dd; color: #0f5132; font-weight: bold; border: 1px solid #badbcc; }
     .badge-status-danger { background-color: #f8d7da; color: #842029; font-weight: bold; border: 1px solid #f5c2c7; }
     .badge-status-warning { background-color: #fff3cd; color: #664d03; font-weight: bold; border: 1px solid #ffecb5; }
@@ -33,16 +24,15 @@
 <body>
 
 <div class="container my-4">
-  <!-- Header dengan Logo Besar -->
   <div class="header-box text-center shadow">
-    <div class="header-logo-large mx-auto mb-3">
-      <img src="05-Logo-la-Viz_Gold-removebg-preview.png" alt="Logo LaViz Mansion" style="max-width: 280px; width: 100%; height: auto; object-fit: contain; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));" />
+    <div class="mx-auto mb-3">
+      <img src="05-Logo-la-Viz_Gold-removebg-preview.png" alt="Logo LaViz Mansion" style="max-width: 280px; width: 100%; height: auto; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));" />
     </div>
     <h3 class="fw-bold mb-1">PORTAL MONITORING & LAPORAN CCTV LAVIZ MANSION</h3>
     <p class="mb-0 small text-white-50">Sistem Pemantauan Kondisi Kamera & Dokumentasi Rekaman Digital</p>
   </div>
 
-  <!-- Panel KPI Ringkasan Statistik -->
+  <!-- Kartu KPI Ringkasan Status -->
   <div class="row g-3 mb-4">
     <div class="col-md-3 col-6">
       <div class="kpi-card bg-kpi-total shadow-sm">
@@ -70,12 +60,12 @@
     </div>
   </div>
 
-  <!-- Panel Filter & Periode Laporan (Clean: Tanpa Hari, Shift, Petugas) -->
+  <!-- Filter Periode -->
   <div class="card card-custom p-3 mb-3">
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label fw-bold text-primary"><i class="bi bi-calendar3 me-1"></i> Bulan Laporan</label>
-        <select id="filterBulan" class="form-select border-primary" onchange="filterData()">
+        <select id="filterBulan" class="form-select border-primary" onchange="loadSheetData()">
           <option value="Januari">Januari</option>
           <option value="Februari">Februari</option>
           <option value="Maret">Maret</option>
@@ -93,12 +83,9 @@
 
       <div class="col-md-6">
         <label class="form-label fw-bold text-primary"><i class="bi bi-calendar-week me-1"></i> Periode Minggu</label>
-        <select id="filterMinggu" class="form-select border-primary" onchange="filterData()">
+        <select id="filterMinggu" class="form-select border-primary" onchange="loadSheetData()">
           <option value="Minggu 1" selected>Minggu 1</option>
           <option value="Minggu 2">Minggu 2</option>
-          <option value="Minggu 3">Minggu 3</option>
-          <option value="Minggu 4">Minggu 4</option>
-          <option value="Minggu 5">Minggu 5</option>
         </select>
       </div>
 
@@ -109,20 +96,19 @@
     </div>
   </div>
 
-  <!-- Ringkasan Status & Export -->
+  <!-- Header Tabel & Action Buttons -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <span class="fw-bold text-secondary">
       Menampilkan <span id="totalRecords" class="badge bg-primary">0</span> Titik Kamera
       <span id="loadingStatus" class="ms-2 spinner-border spinner-border-sm text-primary" role="status"></span>
     </span>
     <div>
-      <button class="btn btn-success btn-sm me-1" onclick="exportTableToExcel()"><i class="bi bi-file-earmark-excel-fill me-1"></i>Download Excel (.xlsx)</button>
-      <button class="btn btn-outline-success btn-sm me-1" onclick="exportTableToCSV()"><i class="bi bi-file-earmark-text me-1"></i>Download CSV</button>
+      <button class="btn btn-success btn-sm me-1" onclick="downloadSpreadsheetExcel()"><i class="bi bi-file-earmark-excel-fill me-1"></i>Download Spreadsheet (.xlsx)</button>
       <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
     </div>
   </div>
 
-  <!-- Tabel Data Kondisi & Rekaman Video -->
+  <!-- Tabel Utama -->
   <div class="card card-custom p-3">
     <div class="table-responsive">
       <table class="table table-hover align-middle" id="cctvTable">
@@ -138,10 +124,7 @@
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="6" class="text-center py-4 text-muted">
-              <div class="spinner-border text-primary mb-2" role="status"></div>
-              <div>Memuat data live langsung dari Google Sheets...</div>
-            </td>
+            <td colspan="6" class="text-center py-4 text-muted">Memuat data live langsung dari Google Sheets...</td>
           </tr>
         </tbody>
       </table>
@@ -149,7 +132,7 @@
   </div>
 </div>
 
-<!-- Modal Nonton Video -->
+<!-- Modal Pemutaran Video -->
 <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -164,9 +147,7 @@
   </div>
 </div>
 
-<!-- Bootstrap 5 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
 const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNOL-gEwlXR7yfwIXNbd-ooI4469U1wJEA5fnwb6VQnmCMnt6GH81unnirWtaWGCWV7g/exec";
 
@@ -176,6 +157,12 @@ function extractUrl(text) {
   if (!text) return "";
   const match = text.match(/(https?:\/\/[^\s\)]+)/i);
   return match ? match[0] : "";
+}
+
+function isPlayableVideo(url) {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return lower.includes(".mp4") || lower.includes(".webm") || lower.includes(".mov") || lower.includes("/video/upload/");
 }
 
 function getStatusBadgeClass(statusStr) {
@@ -206,35 +193,28 @@ function updateKPI(data) {
 
 function loadSheetData() {
   document.getElementById("loadingStatus").style.display = "inline-block";
+  const bulan = document.getElementById("filterBulan").value;
+  const minggu = document.getElementById("filterMinggu").value;
 
-  fetch(GOOGLE_APPS_SCRIPT_URL)
+  fetch(`${GOOGLE_APPS_SCRIPT_URL}?bulan=${encodeURIComponent(bulan)}&minggu=${encodeURIComponent(minggu)}`)
     .then(response => response.json())
     .then(res => {
       document.getElementById("loadingStatus").style.display = "none";
       if (res.status === "success" && res.data) {
-        masterData = res.data.map((item, index) => {
-          const itemNo = item.no || (index + 1);
-          let videoLink = extractUrl(item.video);
-          
-          return {
-            no: itemNo,
-            area: item.area || "-",
-            kamera: item.kamera || "-",
-            lokasi: item.lokasi || "-",
-            statusExist: (item.keterangan || "Normal").toString().trim(),
-            videoExist: videoLink
-          };
-        });
+        masterData = res.data.map((item, index) => ({
+          no: item.no || (index + 1),
+          area: item.area || "-",
+          kamera: item.kamera || "-",
+          lokasi: item.lokasi || "-",
+          statusExist: (item.keterangan || "Normal").toString().trim(),
+          videoExist: extractUrl(item.video)
+        }));
         renderTable(masterData);
-      } else {
-        throw new Error("Gagal mengambil data");
       }
     })
-    .catch(err => {
+    .catch(() => {
       document.getElementById("loadingStatus").style.display = "none";
-      document.getElementById("tableBody").innerHTML = `
-        <tr><td colspan="6" class="text-center py-4 text-danger fw-bold">Gagal memuat data live dari Google Sheets. Pastikan koneksi internet stabil.</td></tr>
-      `;
+      renderTable([]);
     });
 }
 
@@ -243,7 +223,7 @@ function renderTable(data) {
   tbody.innerHTML = "";
 
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Data tidak ditemukan</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Data belum terisi untuk periode ini.</td></tr>`;
     document.getElementById("totalRecords").innerText = 0;
     updateKPI([]);
     return;
@@ -252,29 +232,26 @@ function renderTable(data) {
   document.getElementById("totalRecords").innerText = data.length;
   updateKPI(data);
 
-  data.forEach((item, idx) => {
-    const itemNo = item.no || (idx + 1);
+  data.forEach((item) => {
     const badgeClass = getStatusBadgeClass(item.statusExist);
     const tr = document.createElement("tr");
 
+    let videoActionHtml = '<span class="badge bg-light text-muted border w-100 py-2">Belum Ada Video</span>';
+    if (item.videoExist) {
+      if (isPlayableVideo(item.videoExist)) {
+        videoActionHtml = `<button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-outline-primary btn-sm py-1 w-100"><i class="bi bi-play-circle me-1"></i>Putar Video</button>`;
+      } else {
+        videoActionHtml = `<a href="${item.videoExist}" target="_blank" download="CCTV_No_${item.no}.dav" class="btn btn-success btn-sm py-1 w-100"><i class="bi bi-download me-1"></i>Download DAV</a>`;
+      }
+    }
+
     tr.innerHTML = `
-      <td class="fw-bold">${itemNo}</td>
+      <td class="fw-bold">${item.no}</td>
       <td><span class="badge bg-secondary">${item.area}</span></td>
       <td class="fw-semibold">${item.kamera}</td>
       <td><small class="text-muted">${item.lokasi}</small></td>
-      <td>
-        <span class="badge p-2 w-100 ${badgeClass}">
-          ${item.statusExist}
-        </span>
-      </td>
-      <td>
-        ${item.videoExist ? `
-          <div class="btn-group btn-group-sm w-100" role="group">
-            <button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-primary py-1"><i class="bi bi-play-circle me-1"></i>Putar</button>
-            <a href="${item.videoExist}" download="CCTV_No_${itemNo}.mp4" class="btn btn-outline-success py-1"><i class="bi bi-download"></i></a>
-          </div>
-        ` : '<span class="badge bg-light text-muted border w-100 py-2">Belum Ada Video</span>'}
-      </td>
+      <td><span class="badge p-2 w-100 ${badgeClass}">${item.statusExist}</span></td>
+      <td>${videoActionHtml}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -294,71 +271,26 @@ function stopModalVideo() {
   player.src = "";
 }
 
-function getPeriodeData() {
-  return {
-    bulan: document.getElementById("filterBulan").value,
-    minggu: document.getElementById("filterMinggu").value
-  };
-}
-
-function exportTableToExcel() {
-  if (masterData.length === 0) return alert("Tidak ada data untuk diunduh!");
-  const periode = getPeriodeData();
-
-  const excelData = masterData.map(r => ({
-    "NO": r.no,
-    "AREA": r.area,
-    "NAMA KAMERA": r.kamera,
-    "DETAIL LOKASI": r.lokasi,
-    "KONDISI / STATUS": r.statusExist,
-    "LINK VIDEO CLOUDINARY": r.videoExist || "-"
-  }));
-
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  worksheet['!cols'] = [
-    { wch: 6 }, { wch: 18 }, { wch: 25 }, { wch: 35 }, { wch: 18 }, { wch: 60 }
-  ];
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, `${periode.bulan}_${periode.minggu}`);
-  XLSX.writeFile(workbook, `Monitoring_CCTV_LaViz_${periode.bulan}_${periode.minggu}.xlsx`);
-}
-
-function exportTableToCSV() {
-  if (masterData.length === 0) return alert("Tidak ada data untuk diunduh!");
-  const periode = getPeriodeData();
-  
-  let csvContent = "data:text/csv;charset=utf-8,No,Area,Nama Kamera,Detail Lokasi,Kondisi,Link Video\n";
-  masterData.forEach(r => {
-    csvContent += `"${r.no}","${r.area}","${r.kamera}","${r.lokasi}","${r.statusExist}","${r.videoExist}"\n`;
-  });
-
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `Monitoring_CCTV_LaViz_${periode.bulan}_${periode.minggu}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+function downloadSpreadsheetExcel() {
+  const bulan = document.getElementById("filterBulan").value;
+  const minggu = document.getElementById("filterMinggu").value;
+  const downloadUrl = `${GOOGLE_APPS_SCRIPT_URL}?action=download&bulan=${encodeURIComponent(bulan)}&minggu=${encodeURIComponent(minggu)}`;
+  window.open(downloadUrl, '_blank');
 }
 
 function filterData() {
   const keyword = document.getElementById("searchKeyword").value.toLowerCase();
-
-  const filtered = masterData.filter((item) => {
-    return !keyword || 
-      item.area.toLowerCase().includes(keyword) || 
-      item.kamera.toLowerCase().includes(keyword) || 
-      item.lokasi.toLowerCase().includes(keyword) ||
-      item.no.toString().includes(keyword);
-  });
-
+  const filtered = masterData.filter((item) => 
+    !keyword || 
+    item.area.toLowerCase().includes(keyword) || 
+    item.kamera.toLowerCase().includes(keyword) || 
+    item.lokasi.toLowerCase().includes(keyword) ||
+    item.no.toString().includes(keyword)
+  );
   renderTable(filtered);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadSheetData();
-});
+document.addEventListener("DOMContentLoaded", loadSheetData);
 </script>
 </body>
 </html>
