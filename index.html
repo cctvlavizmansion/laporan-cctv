@@ -237,13 +237,22 @@ function renderTable(data) {
     const tr = document.createElement("tr");
 
     let videoActionHtml = '<span class="badge bg-light text-muted border w-100 py-2">Belum Ada Video</span>';
-    if (item.videoExist) {
-      if (isPlayableVideo(item.videoExist)) {
-        videoActionHtml = `<button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-outline-primary btn-sm py-1 w-100"><i class="bi bi-play-circle me-1"></i>Putar Video</button>`;
-      } else {
-        videoActionHtml = `<a href="${item.videoExist}" target="_blank" download="CCTV_No_${item.no}.dav" class="btn btn-success btn-sm py-1 w-100"><i class="bi bi-download me-1"></i>Download DAV</a>`;
-      }
-    }
+
+if (item.videoExist) {
+  if (isPlayableVideo(item.videoExist)) {
+    // WARNA HIJAU UNTUK MP4 / PLAYABLE VIDEO
+    videoActionHtml = `
+      <button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-success btn-sm py-1 w-100">
+        <i class="bi bi-play-circle-fill me-1"></i>Putar MP4
+      </button>`;
+  } else {
+    // WARNA ORANYE/KUNING BOLD UNTUK FILE DAV / MENTAH
+    videoActionHtml = `
+      <a href="${item.videoExist}" target="_blank" download="CCTV_No_${item.no}.dav" class="btn btn-warning text-dark fw-bold btn-sm py-1 w-100">
+        <i class="bi bi-file-earmark-code-fill me-1"></i>Download DAV
+      </a>`;
+  }
+}
 
     tr.innerHTML = `
       <td class="fw-bold">${item.no}</td>
