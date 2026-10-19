@@ -32,28 +32,28 @@
     <p class="mb-0 small text-white-50">Sistem Pemantauan Kondisi Kamera & Dokumentasi Rekaman Digital</p>
   </div>
 
-  <!-- Kartu KPI Ringkasan Status -->
+  <!-- Kartu KPI Ringkasan Status (Interaktif / Bisa Diklik) -->
   <div class="row g-3 mb-4">
     <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-total shadow-sm">
+      <div class="kpi-card bg-kpi-total shadow-sm" style="cursor: pointer;" onclick="filterByKpi('all')" title="Klik untuk menampilkan semua kamera">
         <div class="small opacity-75"><i class="bi bi-camera-video-fill me-1"></i> Total Titik Kamera</div>
         <div class="fs-3 fw-bold" id="kpiTotal">0</div>
       </div>
     </div>
     <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-normal shadow-sm">
+      <div class="kpi-card bg-kpi-normal shadow-sm" style="cursor: pointer;" onclick="filterByKpi('normal')" title="Klik untuk memfilter kamera Normal">
         <div class="small opacity-75"><i class="bi bi-check-circle-fill me-1"></i> Kondisi Normal</div>
         <div class="fs-3 fw-bold" id="kpiNormal">0</div>
       </div>
     </div>
     <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-problem shadow-sm">
+      <div class="kpi-card bg-kpi-problem shadow-sm" style="cursor: pointer;" onclick="filterByKpi('trouble')" title="Klik untuk memfilter kamera Trouble/Rusak">
         <div class="small opacity-75"><i class="bi bi-exclamation-triangle-fill me-1"></i> TROUBLE / Rusak</div>
         <div class="fs-3 fw-bold" id="kpiProblem">0</div>
       </div>
     </div>
     <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-video shadow-sm">
+      <div class="kpi-card bg-kpi-video shadow-sm" style="cursor: pointer;" onclick="filterByKpi('video')" title="Klik untuk memfilter kamera dengan Video">
         <div class="small text-dark opacity-75"><i class="bi bi-film me-1"></i> Video Ter-upload</div>
         <div class="fs-3 fw-bold text-dark" id="kpiVideo">0</div>
       </div>
@@ -294,3 +294,40 @@ document.addEventListener("DOMContentLoaded", loadSheetData);
 </script>
 </body>
 </html>
+
+let currentKpiFilter = 'all';
+
+function filterByKpi(filterType) {
+  currentKpiFilter = filterType;
+  filterData();
+}
+
+function filterData() {
+  const keyword = document.getElementById("searchKeyword").value.toLowerCase();
+  
+  const filtered = masterData.filter((item) => {
+    const st = item.statusExist.toUpperCase();
+    const hasVideo = item.videoExist && item.videoExist.includes("http");
+
+    // Filter berdasarkan Kartu KPI yang diklik
+    let matchKpi = true;
+    if (currentKpiFilter === 'normal') {
+      matchKpi = (st === 'NORMAL');
+    } else if (currentKpiFilter === 'trouble') {
+      matchKpi = (st !== 'NORMAL'); // Menampilkan semua status trouble/rusak/noise/buram/mati
+    } else if (currentKpiFilter === 'video') {
+      matchKpi = hasVideo;
+    }
+
+    // Filter berdasarkan pencarian teks
+    const matchKeyword = !keyword || 
+      item.area.toLowerCase().includes(keyword) || 
+      item.kamera.toLowerCase().includes(keyword) || 
+      item.lokasi.toLowerCase().includes(keyword) ||
+      item.no.toString().includes(keyword);
+
+    return matchKpi && matchKeyword;
+  });
+
+  renderTable(filtered);
+}
