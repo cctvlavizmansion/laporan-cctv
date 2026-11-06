@@ -79,27 +79,42 @@
       </div>
     </div>
 
-    <!-- Filter & Toolbar -->
+    <!-- Filter & Toolbar (Tahun, 12 Bulan, Minggu 1 & 2) -->
     <div class="card border-0 shadow-sm mb-4 p-3 rounded-3">
       <div class="row g-3 align-items-center">
-        <div class="col-md-3">
-          <label class="form-label fw-bold small text-muted"><i class="bi bi-calendar-month me-1"></i>Bulan Laporan</label>
-          <select id="filterBulan" class="form-select" onchange="loadSheetData()">
-            <option value="Oktober" selected>Oktober</option>
-            <option value="November">November</option>
-            <option value="Desember">Desember</option>
+        <div class="col-md-2">
+          <label class="form-label fw-bold small text-muted"><i class="bi bi-calendar-event me-1"></i>Tahun</label>
+          <select id="filterTahun" class="form-select" onchange="loadSheetData()">
+            <option value="2026" selected>2026</option>
+            <option value="2027">2027</option>
+            <option value="2025">2025</option>
           </select>
         </div>
         <div class="col-md-3">
+          <label class="form-label fw-bold small text-muted"><i class="bi bi-calendar-month me-1"></i>Bulan Laporan</label>
+          <select id="filterBulan" class="form-select" onchange="loadSheetData()">
+            <option value="Januari">Januari</option>
+            <option value="Februari">Februari</option>
+            <option value="Maret">Maret</option>
+            <option value="April">April</option>
+            <option value="Mei">Mei</option>
+            <option value="Juni">Juni</option>
+            <option value="Juli">Juli</option>
+            <option value="Agustus">Agustus</option>
+            <option value="September">September</option>
+            <option value="Oktober">Oktober</option>
+            <option value="November" selected>November</option>
+            <option value="Desember">Desember</option>
+          </select>
+        </div>
+        <div class="col-md-2">
           <label class="form-label fw-bold small text-muted"><i class="bi bi-calendar-week me-1"></i>Periode Minggu</label>
           <select id="filterMinggu" class="form-select" onchange="loadSheetData()">
             <option value="Minggu 1" selected>Minggu 1</option>
             <option value="Minggu 2">Minggu 2</option>
-            <option value="Minggu 3">Minggu 3</option>
-            <option value="Minggu 4">Minggu 4</option>
           </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label fw-bold small text-muted"><i class="bi bi-search me-1"></i>Cari Kamera / Detail Lokasi</label>
           <input type="text" id="searchKeyword" class="form-control" placeholder="Ketik kata kunci pencarian..." onkeyup="filterData()">
         </div>
@@ -162,7 +177,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // URL WEB APP TERBARU BOSS
     const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNOL-gEwlXR7yfwIXNbd-ooI4469U1wJEA5fnwb6VQnmCMnt6GH81unnirWtaWGCWV7g/exec";
 
     let masterData = [];
@@ -171,13 +185,13 @@
       loadSheetData();
     });
 
-    // 1. TARIK DATA DARI APPS SCRIPT
     function loadSheetData() {
       document.getElementById("loadingStatus").style.display = "inline-block";
+      const tahun = document.getElementById("filterTahun").value;
       const bulan = document.getElementById("filterBulan").value;
       const minggu = document.getElementById("filterMinggu").value;
 
-      fetch(`${GOOGLE_APPS_SCRIPT_URL}?bulan=${encodeURIComponent(bulan)}&minggu=${encodeURIComponent(minggu)}`)
+      fetch(`${GOOGLE_APPS_SCRIPT_URL}?tahun=${encodeURIComponent(tahun)}&bulan=${encodeURIComponent(bulan)}&minggu=${encodeURIComponent(minggu)}`)
         .then(response => response.json())
         .then(res => {
           document.getElementById("loadingStatus").style.display = "none";
@@ -211,7 +225,6 @@
         });
     }
 
-    // 2. RENDERING TABEL
     function renderTable(data) {
       const tbody = document.getElementById("tableBody");
       tbody.innerHTML = "";
@@ -224,13 +237,11 @@
       data.forEach((item) => {
         const tr = document.createElement("tr");
 
-        // Format Status Badge
         let badgeClass = "bg-success";
         const st = (item.keterangan || "NORMAL").toUpperCase();
-        if (st.includes("GETAR") || st.includes("NOISE") || st.includes("KOTOR")) badgeClass = "bg-warning text-dark";
+        if (st.includes("GETAR") || st.includes("NOISE") || st.includes("KOTOR") || st.includes("BURAM")) badgeClass = "bg-warning text-dark";
         if (st.includes("MATI") || st.includes("TROUBLE") || st.includes("RUSAK")) badgeClass = "bg-danger";
 
-        // Tombol Video Action
         const vUrl = item.videoExist || item.video || "";
         let videoActionHtml = '<span class="badge bg-light text-muted border w-100 py-2">Belum Ada Video</span>';
 
@@ -263,7 +274,6 @@
       });
     }
 
-    // 3. FILTER PENCARIAN CLIENT-SIDE
     function filterData() {
       const keyword = document.getElementById("searchKeyword").value.toLowerCase();
       const filtered = masterData.filter(item => {
@@ -276,7 +286,6 @@
       renderTable(filtered);
     }
 
-    // 4. UPDATE CARDS KPI DASHBOARD
     function updateKpiCards(data) {
       document.getElementById("kpiTotal").innerText = data.length;
       
@@ -285,7 +294,7 @@
 
       const troubleCount = data.filter(i => {
         const s = (i.keterangan || "").toUpperCase();
-        return s.includes("TROUBLE") || s.includes("MATI") || s.includes("RUSAK") || s.includes("GETAR") || s.includes("NOISE");
+        return s.includes("TROUBLE") || s.includes("MATI") || s.includes("RUSAK") || s.includes("GETAR") || s.includes("NOISE") || s.includes("BURAM");
       }).length;
       document.getElementById("kpiTrouble").innerText = troubleCount;
 
@@ -293,8 +302,8 @@
       document.getElementById("kpiVideo").innerText = videoCount;
     }
 
-    // 5. DOWNLOAD EXCEL LOKAL VIA SHEETJS
     function downloadSpreadsheetExcel() {
+      const tahun = document.getElementById("filterTahun").value;
       const bulan = document.getElementById("filterBulan").value;
       const minggu = document.getElementById("filterMinggu").value;
 
@@ -320,11 +329,10 @@
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan CCTV");
 
-      const fileName = `Laporan_CCTV_LaViz_${bulan}_${minggu.replace(/\s+/g, '_')}.xlsx`;
+      const fileName = `Laporan_CCTV_LaViz_${tahun}_${bulan}_${minggu.replace(/\s+/g, '_')}.xlsx`;
       XLSX.writeFile(workbook, fileName);
     }
 
-    // 6. MODAL UTILS
     function playVideoModal(url, cameraName) {
       document.getElementById("modalVideoTitle").innerText = `Rekaman CCTV: ${cameraName}`;
       const player = document.getElementById("modalVideoPlayer");
