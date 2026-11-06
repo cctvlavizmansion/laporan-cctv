@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
+  <!-- Library untuk Download Excel Langsung dari Browser -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -281,10 +283,41 @@ function stopModalVideo() {
 }
 
 function downloadSpreadsheetExcel() {
-  const bulan = document.getElementById("filterBulan").value;
-  const minggu = document.getElementById("filterMinggu").value;
-  const downloadUrl = `${GOOGLE_APPS_SCRIPT_URL}?action=download&bulan=${encodeURIComponent(bulan)}&minggu=${encodeURIComponent(minggu)}`;
-  window.open(downloadUrl, '_blank');
+  const bulan = document.getElementById("filterBulan") ? document.getElementById("filterBulan").value : "Laporan";
+  const minggu = document.getElementById("filterMinggu") ? document.getElementById("filterMinggu").value : "";
+
+  // Pastikan data masterData ada
+  const dataToExport = (typeof masterData !== 'undefined' && masterData.length > 0) ? masterData : [];
+
+  if (dataToExport.length === 0) {
+    alert("Data belum siap atau sedang dimuat, tunggu sebentar ya Boss!");
+    return;
+  }
+
+  // Susun data untuk file Excel
+  const excelData = dataToExport.map(item => {
+    return {
+      "NO": item.no,
+      "AREA": item.area,
+      "NAMA KAMERA": item.kamera,
+      "DETAIL LOKASI": item.lokasi,
+      "JADWAL PENGECEKAN": item.hari,
+      "SHIFT": item.shift,
+      "KONDISI / STATUS": item.keterangan || item.statusExist || "NORMAL",
+      "LINK REKAMAN VIDEO": item.video || item.videoExist || "Belum Ada Video"
+    };
+  });
+
+  // Buat Sheet & Workbook Excel
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan CCTV");
+
+  // Format Nama File: Laporan_CCTV_LaViz_November_Minggu_1.xlsx
+  const fileName = `Laporan_CCTV_LaViz_${bulan}_${minggu.replace(/\s+/g, '_')}.xlsx`;
+
+  // Unduh File
+  XLSX.writeFile(workbook, fileName);
 }
 
 function filterData() {
