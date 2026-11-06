@@ -1,388 +1,350 @@
 <!DOCTYPE html>
 <html lang="id">
-  <!-- Library untuk Download Excel Langsung dari Browser -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal Monitoring CCTV - LaViz Mansion</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Monitoring & Laporan CCTV LaViz Mansion</title>
+  <!-- Bootstrap CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- SheetJS Library (Untuk Download Excel Instan) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .header-box { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; }
-    .card-custom { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .table-responsive { max-height: 600px; overflow-y: auto; }
-    .kpi-card { border-radius: 10px; padding: 15px; color: white; transition: transform 0.2s; }
-    .bg-kpi-total { background: linear-gradient(135deg, #6c757d, #495057); }
-    .bg-kpi-normal { background: linear-gradient(135deg, #198754, #146c43); }
-    .bg-kpi-problem { background: linear-gradient(135deg, #dc3545, #b02a37); }
-    .bg-kpi-video { background: linear-gradient(135deg, #0dcaf0, #0aa2c0); }
-    .badge-status-normal { background-color: #d1e7dd; color: #0f5132; font-weight: bold; border: 1px solid #badbcc; }
-    .badge-status-danger { background-color: #f8d7da; color: #842029; font-weight: bold; border: 1px solid #f5c2c7; }
-    .badge-status-warning { background-color: #fff3cd; color: #664d03; font-weight: bold; border: 1px solid #ffecb5; }
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .hero-header { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; border-radius: 0 0 20px 20px; }
+    .card-kpi { border: none; border-radius: 12px; transition: transform 0.2s; }
+    .card-kpi:hover { transform: translateY(-3px); }
+    .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .badge-status { font-size: 0.85rem; padding: 6px 12px; }
   </style>
 </head>
 <body>
 
-<div class="container my-4">
-  <div class="header-box text-center shadow">
-    <div class="mx-auto mb-3">
-      <img src="05-Logo-la-Viz_Gold-removebg-preview.png" alt="Logo LaViz Mansion" style="max-width: 280px; width: 100%; height: auto; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));" />
-    </div>
-    <h3 class="fw-bold mb-1">PORTAL MONITORING & LAPORAN CCTV LAVIZ MANSION</h3>
-    <p class="mb-0 small text-white-50">Sistem Pemantauan Kondisi Kamera & Dokumentasi Rekaman Digital</p>
-  </div>
-
-  <!-- Kartu KPI Ringkasan Status (Interaktif / Bisa Diklik) -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-total shadow-sm" style="cursor: pointer;" onclick="filterByKpi('all')" title="Klik untuk menampilkan semua kamera">
-        <div class="small opacity-75"><i class="bi bi-camera-video-fill me-1"></i> Total Titik Kamera</div>
-        <div class="fs-3 fw-bold" id="kpiTotal">0</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-normal shadow-sm" style="cursor: pointer;" onclick="filterByKpi('normal')" title="Klik untuk memfilter kamera Normal">
-        <div class="small opacity-75"><i class="bi bi-check-circle-fill me-1"></i> Kondisi Normal</div>
-        <div class="fs-3 fw-bold" id="kpiNormal">0</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-problem shadow-sm" style="cursor: pointer;" onclick="filterByKpi('trouble')" title="Klik untuk memfilter kamera Trouble/Rusak">
-        <div class="small opacity-75"><i class="bi bi-exclamation-triangle-fill me-1"></i> TROUBLE / Rusak</div>
-        <div class="fs-3 fw-bold" id="kpiProblem">0</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-6">
-      <div class="kpi-card bg-kpi-video shadow-sm" style="cursor: pointer;" onclick="filterByKpi('video')" title="Klik untuk memfilter kamera dengan Video">
-        <div class="small text-dark opacity-75"><i class="bi bi-film me-1"></i> Video Ter-upload</div>
-        <div class="fs-3 fw-bold text-dark" id="kpiVideo">0</div>
-      </div>
+  <!-- Header Portal -->
+  <div class="hero-header py-4 px-3 mb-4 text-center shadow-sm">
+    <div class="container">
+      <img src="05-Logo-la-Viz_Gold-removebg-preview.png" alt="LaViz Logo" style="max-height: 70px;" class="mb-2">
+      <h2 class="fw-bold mb-1">PORTAL MONITORING & LAPORAN CCTV LAVIZ MANSION</h2>
+      <p class="mb-0 opacity-75">Sistem Pemantauan Kondisi Kamera & Dokumentasi Rekaman Digital</p>
     </div>
   </div>
 
-  <!-- Filter Periode -->
-  <div class="card card-custom p-3 mb-3">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label fw-bold text-primary"><i class="bi bi-calendar3 me-1"></i> Bulan Laporan</label>
-        <select id="filterBulan" class="form-select border-primary" onchange="loadSheetData()">
-          <option value="Januari">Januari</option>
-          <option value="Februari">Februari</option>
-          <option value="Maret">Maret</option>
-          <option value="April">April</option>
-          <option value="Mei">Mei</option>
-          <option value="Juni">Juni</option>
-          <option value="Juli">Juli</option>
-          <option value="Agustus">Agustus</option>
-          <option value="September">September</option>
-          <option value="Oktober" selected>Oktober</option>
-          <option value="November">November</option>
-          <option value="Desember">Desember</option>
-        </select>
+  <div class="container mb-5">
+
+    <!-- KPI Dashboard Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3 col-6">
+        <div class="card card-kpi bg-secondary text-white p-3 shadow-sm">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-camera-video fs-1 me-3"></i>
+            <div>
+              <small class="text-white-50 d-block">Total Titik Kamera</small>
+              <h3 class="fw-bold mb-0" id="kpiTotal">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="card card-kpi bg-success text-white p-3 shadow-sm">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle fs-1 me-3"></i>
+            <div>
+              <small class="text-white-50 d-block">Kondisi Normal</small>
+              <h3 class="fw-bold mb-0" id="kpiNormal">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="card card-kpi bg-danger text-white p-3 shadow-sm">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle fs-1 me-3"></i>
+            <div>
+              <small class="text-white-50 d-block">TROUBLE / Rusak</small>
+              <h3 class="fw-bold mb-0" id="kpiTrouble">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="card card-kpi bg-info text-white p-3 shadow-sm">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-cloud-arrow-up fs-1 me-3"></i>
+            <div>
+              <small class="text-white-50 d-block">Video Ter-upload</small>
+              <h3 class="fw-bold mb-0" id="kpiVideo">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Toolbar -->
+    <div class="card border-0 shadow-sm mb-4 p-3 rounded-3">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-3">
+          <label class="form-label fw-bold small text-muted"><i class="bi bi-calendar-month me-1"></i>Bulan Laporan</label>
+          <select id="filterBulan" class="form-select" onchange="loadSheetData()">
+            <option value="Oktober" selected>Oktober</option>
+            <option value="November">November</option>
+            <option value="Desember">Desember</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold small text-muted"><i class="bi bi-calendar-week me-1"></i>Periode Minggu</label>
+          <select id="filterMinggu" class="form-select" onchange="loadSheetData()">
+            <option value="Minggu 1" selected>Minggu 1</option>
+            <option value="Minggu 2">Minggu 2</option>
+            <option value="Minggu 3">Minggu 3</option>
+            <option value="Minggu 4">Minggu 4</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold small text-muted"><i class="bi bi-search me-1"></i>Cari Kamera / Detail Lokasi</label>
+          <input type="text" id="searchKeyword" class="form-control" placeholder="Ketik kata kunci pencarian..." onkeyup="filterData()">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button onclick="downloadSpreadsheetExcel()" class="btn btn-success w-100 fw-bold py-2">
+            <i class="bi bi-file-earmark-excel me-1"></i>Download (.xlsx)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabel Data Laporan CCTV -->
+    <div class="table-container p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-table me-2"></i>Daftar Status & Rekaman CCTV</h5>
+        <span id="loadingStatus" class="spinner-border spinner-border-sm text-primary" style="display: none;"></span>
       </div>
 
-      <div class="col-md-6">
-        <label class="form-label fw-bold text-primary"><i class="bi bi-calendar-week me-1"></i> Periode Minggu</label>
-        <select id="filterMinggu" class="form-select border-primary" onchange="loadSheetData()">
-          <option value="Minggu 1" selected>Minggu 1</option>
-          <option value="Minggu 2">Minggu 2</option>
-        </select>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 50px;">NO</th>
+              <th style="width: 120px;">AREA</th>
+              <th>NAMA KAMERA</th>
+              <th>DETAIL LOKASI</th>
+              <th style="width: 130px;">JADWAL</th>
+              <th style="width: 80px;">SHIFT</th>
+              <th style="width: 120px;" class="text-center">KONDISI</th>
+              <th style="width: 160px;" class="text-center">AKSI REKAMAN</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">Memuat data CCTV...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+    </div>
 
-      <div class="col-12">
-        <label class="form-label fw-bold"><i class="bi bi-search me-1"></i> Cari Kamera / Detail Lokasi</label>
-        <input type="text" id="searchKeyword" class="form-control" placeholder="Ketik nama kamera atau lokasi..." onkeyup="filterData()" />
+  </div>
+
+  <!-- Modal Video Player -->
+  <div class="modal fade" id="modalVideo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-header-title fw-bold mb-0" id="modalVideoTitle">Pemutar Rekaman CCTV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeVideoModal()"></button>
+        </div>
+        <div class="modal-body p-0 bg-dark text-center">
+          <video id="modalVideoPlayer" controls style="max-width: 100%; max-height: 500px;" src=""></video>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Header Tabel & Action Buttons -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="fw-bold text-secondary">
-      Menampilkan <span id="totalRecords" class="badge bg-primary">0</span> Titik Kamera
-      <span id="loadingStatus" class="ms-2 spinner-border spinner-border-sm text-primary" role="status"></span>
-    </span>
-    <div>
-      <button class="btn btn-success btn-sm me-1" onclick="downloadSpreadsheetExcel()"><i class="bi bi-file-earmark-excel-fill me-1"></i>Download Spreadsheet (.xlsx)</button>
-      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
-    </div>
-  </div>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Tabel Utama -->
-  <div class="card card-custom p-3">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle" id="cctvTable">
-        <thead class="table-dark sticky-top">
-          <tr>
-            <th width="6%">No</th>
-            <th width="15%">Area</th>
-            <th width="22%">Nama Kamera</th>
-            <th width="32%">Detail Lokasi</th>
-            <th width="13%">Kondisi</th>
-            <th width="12%">Rekaman Video</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <tr>
-            <td colspan="6" class="text-center py-4 text-muted">Memuat data live langsung dari Google Sheets...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+  <script>
+    // URL WEB APP APPS SCRIPT BOSS
+    const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqV56i1dDnd11N78N40gZz_l2w6zN4c4MhU_Z822pT/exec"; // Sesuaikan jika ada update URL Web App
 
-<!-- Modal Pemutaran Video -->
-<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title" id="videoModalTitle"><i class="bi bi-camera-reels me-2"></i>Pemutaran Rekaman CCTV</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopModalVideo()"></button>
-      </div>
-      <div class="modal-body p-0 bg-black text-center">
-        <video id="modalVideoPlayer" controls style="max-width: 100%; max-height: 500px;" autoplay></video>
-      </div>
-    </div>
-  </div>
-</div>
+    let masterData = [];
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNOL-gEwlXR7yfwIXNbd-ooI4469U1wJEA5fnwb6VQnmCMnt6GH81unnirWtaWGCWV7g/exec";
-
-let masterData = [];
-
-function extractUrl(text) {
-  if (!text) return "";
-  const match = text.match(/(https?:\/\/[^\s\)]+)/i);
-  return match ? match[0] : "";
-}
-
-function isPlayableVideo(url) {
-  if (!url) return false;
-  const lower = url.toLowerCase();
-  return lower.includes(".mp4") || lower.includes(".webm") || lower.includes(".mov") || lower.includes("/video/upload/");
-}
-
-function getStatusBadgeClass(statusStr) {
-  const st = (statusStr || "").toUpperCase();
-  if (st === "NORMAL") return "badge-status-normal";
-  if (st === "ADA KENDALA") return "badge-status-warning";
-  return "badge-status-danger";
-}
-
-function updateKPI(data) {
-  document.getElementById("kpiTotal").innerText = data.length;
-  let normalCount = 0;
-  let problemCount = 0;
-  let videoCount = 0;
-
-  data.forEach(item => {
-    const st = item.statusExist.toUpperCase();
-    if (st === "NORMAL") normalCount++;
-    else problemCount++;
-
-    if (item.videoExist && item.videoExist.includes("http")) videoCount++;
-  });
-
-  document.getElementById("kpiNormal").innerText = normalCount;
-  document.getElementById("kpiProblem").innerText = problemCount;
-  document.getElementById("kpiVideo").innerText = videoCount;
-}
-
-function loadSheetData() {
-  document.getElementById("loadingStatus").style.display = "inline-block";
-  const bulan = document.getElementById("filterBulan").value;
-  const minggu = document.getElementById("filterMinggu").value;
-
-  fetch(`${GOOGLE_APPS_SCRIPT_URL}?bulan=${encodeURIComponent(bulan)}&minggu=${encodeURIComponent(minggu)}`)
-    .then(response => response.json())
-    .then(res => {
-      document.getElementById("loadingStatus").style.display = "none";
-      if (res.status === "success" && res.data) {
-        masterData = res.data.map((item, index) => {
-          const rawVideo = item.video || "";
-          const extracted = (typeof extractUrl === "function") ? extractUrl(rawVideo) : rawVideo;
-          
-          return {
-            no: item.no || (index + 1),
-            area: item.area || "-",
-            kamera: item.kamera || "-",
-            lokasi: item.lokasi || "-",
-            statusExist: (item.keterangan || "Normal").toString().trim(),
-            keterangan: (item.keterangan || "Normal").toString().trim(),
-            videoExist: extracted || rawVideo,
-            video: extracted || rawVideo
-          };
-        });
-        renderTable(masterData);
-      }
-    })
-    .catch(() => {
-      document.getElementById("loadingStatus").style.display = "none";
-      renderTable([]);
+    document.addEventListener("DOMContentLoaded", function() {
+      loadSheetData();
     });
-}
 
-function renderTable(data) {
-  const tbody = document.getElementById("tableBody");
-  tbody.innerHTML = "";
+    // 1. TARIK DATA DARI APPS SCRIPT
+    function loadSheetData() {
+      document.getElementById("loadingStatus").style.display = "inline-block";
+      const bulan = document.getElementById("filterBulan").value;
+      const minggu = document.getElementById("filterMinggu").value;
 
-  if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Data belum terisi untuk periode ini.</td></tr>`;
-    document.getElementById("totalRecords").innerText = 0;
-    updateKPI([]);
-    return;
-  }
+      fetch(`${GOOGLE_APPS_SCRIPT_URL}?bulan=${encodeURIComponent(bulan)}&minggu=${encodeURIComponent(minggu)}`)
+        .then(response => response.json())
+        .then(res => {
+          document.getElementById("loadingStatus").style.display = "none";
+          if (res.status === "success" && res.data) {
+            masterData = res.data.map((item, index) => {
+              const rawVideo = item.video || "";
+              const extracted = (typeof extractUrl === "function") ? extractUrl(rawVideo) : rawVideo;
+              
+              return {
+                no: item.no || (index + 1),
+                area: item.area || "-",
+                kamera: item.kamera || "-",
+                lokasi: item.lokasi || "-",
+                hari: item.hari || "-",
+                shift: item.shift || "-",
+                statusExist: (item.keterangan || "Normal").toString().trim(),
+                keterangan: (item.keterangan || "Normal").toString().trim(),
+                videoExist: extracted || rawVideo,
+                video: extracted || rawVideo
+              };
+            });
+            
+            updateKpiCards(masterData);
+            filterData();
+          }
+        })
+        .catch(err => {
+          console.error("Gagal memuat data:", err);
+          document.getElementById("loadingStatus").style.display = "none";
+          renderTable([]);
+        });
+    }
 
-  document.getElementById("totalRecords").innerText = data.length;
-  updateKPI(data);
+    // 2. RENDERING TABEL
+    function renderTable(data) {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
 
-  data.forEach((item) => {
-    const badgeClass = getStatusBadgeClass(item.statusExist);
-    const tr = document.createElement("tr");
-
-    // AMBIL LINK VIDEO DARI VARIABLE APA PUN YANG TERSEDIA
-    const vUrl = item.videoExist || item.video || "";
-
-    let videoActionHtml = '<span class="badge bg-light text-muted border w-100 py-2">Belum Ada Video</span>';
-
-    if (vUrl && vUrl.trim() !== "" && vUrl.includes("http")) {
-      // Cek apakah format video playable (MP4/WebM) atau mentah (DAV/MOV/AVI)
-      const isMp4 = (typeof isPlayableVideo === "function") ? isPlayableVideo(vUrl) : vUrl.toLowerCase().includes(".mp4");
-
-      if (isMp4) {
-        // TOMBOL HIJAU UNTUK MP4
-        videoActionHtml = `
-          <button onclick="playVideoModal('${vUrl}', '${item.kamera}')" class="btn btn-success btn-sm py-1 w-100">
-            <i class="bi bi-play-circle-fill me-1"></i>Putar MP4
-          </button>`;
-      } else {
-        // TOMBOL ORANYE UNTUK DAV / FORMAT LAIN
-        videoActionHtml = `
-          <a href="${vUrl}" target="_blank" download class="btn btn-warning text-dark fw-bold btn-sm py-1 w-100">
-            <i class="bi bi-file-earmark-code-fill me-1"></i>Download DAV
-          </a>`;
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Tidak ada data ditemukan untuk periode ini.</td></tr>`;
+        return;
       }
+
+      data.forEach((item) => {
+        const tr = document.createElement("tr");
+
+        // Format Status Badge
+        let badgeClass = "bg-success";
+        const st = (item.keterangan || "NORMAL").toUpperCase();
+        if (st.includes("GETAR") || st.includes("NOISE") || st.includes("KOTOR")) badgeClass = "bg-warning text-dark";
+        if (st.includes("MATI") || st.includes("TROUBLE") || st.includes("RUSAK")) badgeClass = "bg-danger";
+
+        // Tombol Video Action
+        const vUrl = item.videoExist || item.video || "";
+        let videoActionHtml = '<span class="badge bg-light text-muted border w-100 py-2">Belum Ada Video</span>';
+
+        if (vUrl && vUrl.trim() !== "" && vUrl.includes("http")) {
+          const isMp4 = vUrl.toLowerCase().includes(".mp4");
+          if (isMp4) {
+            videoActionHtml = `
+              <button onclick="playVideoModal('${vUrl}', '${item.kamera}')" class="btn btn-success btn-sm py-1 w-100">
+                <i class="bi bi-play-circle-fill me-1"></i>Putar MP4
+              </button>`;
+          } else {
+            videoActionHtml = `
+              <a href="${vUrl}" target="_blank" download class="btn btn-warning text-dark fw-bold btn-sm py-1 w-100">
+                <i class="bi bi-file-earmark-code-fill me-1"></i>Download DAV
+              </a>`;
+          }
+        }
+
+        tr.innerHTML = `
+          <td class="fw-bold">${item.no}</td>
+          <td><span class="badge bg-secondary">${item.area}</span></td>
+          <td class="fw-bold">${item.kamera}</td>
+          <td class="small">${item.lokasi}</td>
+          <td class="small">${item.hari}</td>
+          <td class="small">${item.shift}</td>
+          <td class="text-center"><span class="badge ${badgeClass} badge-status">${item.keterangan}</span></td>
+          <td class="text-center">${videoActionHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
-    tr.innerHTML = `
-      <td class="fw-bold">${item.no}</td>
-      <td><span class="badge bg-secondary">${item.area}</span></td>
-      <td class="fw-semibold">${item.kamera}</td>
-      <td><small class="text-muted">${item.lokasi}</small></td>
-      <td><span class="badge p-2 w-100 ${badgeClass}">${item.statusExist}</span></td>
-      <td>${videoActionHtml}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function playVideoModal(url, cameraName) {
-  document.getElementById("videoModalTitle").innerText = `Rekaman CCTV: ${cameraName}`;
-  const player = document.getElementById("modalVideoPlayer");
-  player.src = url;
-  const myModal = new bootstrap.Modal(document.getElementById('videoModal'));
-  myModal.show();
-}
-
-function stopModalVideo() {
-  const player = document.getElementById("modalVideoPlayer");
-  player.pause();
-  player.src = "";
-}
-
-function downloadSpreadsheetExcel() {
-  const bulan = document.getElementById("filterBulan") ? document.getElementById("filterBulan").value : "Laporan";
-  const minggu = document.getElementById("filterMinggu") ? document.getElementById("filterMinggu").value : "";
-
-  // Pastikan data masterData ada
-  const dataToExport = (typeof masterData !== 'undefined' && masterData.length > 0) ? masterData : [];
-
-  if (dataToExport.length === 0) {
-    alert("Data belum siap atau sedang dimuat, tunggu sebentar ya Boss!");
-    return;
-  }
-
-  // Susun data untuk file Excel
-  const excelData = dataToExport.map(item => {
-    return {
-      "NO": item.no,
-      "AREA": item.area,
-      "NAMA KAMERA": item.kamera,
-      "DETAIL LOKASI": item.lokasi,
-      "JADWAL PENGECEKAN": item.hari,
-      "SHIFT": item.shift,
-      "KONDISI / STATUS": item.keterangan || item.statusExist || "NORMAL",
-      "LINK REKAMAN VIDEO": item.video || item.videoExist || "Belum Ada Video"
-    };
-  });
-
-  // Buat Sheet & Workbook Excel
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan CCTV");
-
-  // Format Nama File: Laporan_CCTV_LaViz_November_Minggu_1.xlsx
-  const fileName = `Laporan_CCTV_LaViz_${bulan}_${minggu.replace(/\s+/g, '_')}.xlsx`;
-
-  // Unduh File
-  XLSX.writeFile(workbook, fileName);
-}
-
-function filterData() {
-  const keyword = document.getElementById("searchKeyword").value.toLowerCase();
-  const filtered = masterData.filter((item) => 
-    !keyword || 
-    item.area.toLowerCase().includes(keyword) || 
-    item.kamera.toLowerCase().includes(keyword) || 
-    item.lokasi.toLowerCase().includes(keyword) ||
-    item.no.toString().includes(keyword)
-  );
-  renderTable(filtered);
-}
-
-document.addEventListener("DOMContentLoaded", loadSheetData);
-
-let currentKpiFilter = 'all';
-
-function filterByKpi(filterType) {
-  currentKpiFilter = filterType;
-  filterData();
-}
-
-function filterData() {
-  const keyword = document.getElementById("searchKeyword").value.toLowerCase();
-  
-  const filtered = masterData.filter((item) => {
-    const st = item.statusExist.toUpperCase();
-    const hasVideo = item.videoExist && item.videoExist.includes("http");
-
-    // Filter berdasarkan Kartu KPI yang diklik
-    let matchKpi = true;
-    if (currentKpiFilter === 'normal') {
-      matchKpi = (st === 'NORMAL');
-    } else if (currentKpiFilter === 'trouble') {
-      matchKpi = (st !== 'NORMAL'); // Menampilkan semua status trouble/rusak/noise/buram/mati
-    } else if (currentKpiFilter === 'video') {
-      matchKpi = hasVideo;
+    // 3. FILTER PENCARIAN CLIENT-SIDE
+    function filterData() {
+      const keyword = document.getElementById("searchKeyword").value.toLowerCase();
+      const filtered = masterData.filter(item => {
+        return !keyword ||
+          item.area.toLowerCase().includes(keyword) ||
+          item.kamera.toLowerCase().includes(keyword) ||
+          item.lokasi.toLowerCase().includes(keyword) ||
+          item.no.toString().includes(keyword);
+      });
+      renderTable(filtered);
     }
 
-    // Filter berdasarkan pencarian teks
-    const matchKeyword = !keyword || 
-      item.area.toLowerCase().includes(keyword) || 
-      item.kamera.toLowerCase().includes(keyword) || 
-      item.lokasi.toLowerCase().includes(keyword) ||
-      item.no.toString().includes(keyword);
+    // 4. UPDATE CARDS KPI DASHBOARD
+    function updateKpiCards(data) {
+      document.getElementById("kpiTotal").innerText = data.length;
+      
+      const normalCount = data.filter(i => (i.keterangan || "").toUpperCase() === "NORMAL").length;
+      document.getElementById("kpiNormal").innerText = normalCount;
 
-    return matchKpi && matchKeyword;
-  });
+      const troubleCount = data.filter(i => {
+        const s = (i.keterangan || "").toUpperCase();
+        return s.includes("TROUBLE") || s.includes("MATI") || s.includes("RUSAK") || s.includes("GETAR") || s.includes("NOISE");
+      }).length;
+      document.getElementById("kpiTrouble").innerText = troubleCount;
 
-  renderTable(filtered);
-}
-</script>
+      const videoCount = data.filter(i => (i.video && i.video.includes("http"))).length;
+      document.getElementById("kpiVideo").innerText = videoCount;
+    }
+
+    // 5. DOWNLOAD EXCEL LOKAL VIA SHEETJS
+    function downloadSpreadsheetExcel() {
+      const bulan = document.getElementById("filterBulan").value;
+      const minggu = document.getElementById("filterMinggu").value;
+
+      if (!masterData || masterData.length === 0) {
+        alert("Data laporan belum dimuat, tunggu sebentar ya Boss!");
+        return;
+      }
+
+      const excelData = masterData.map(item => {
+        return {
+          "NO": item.no,
+          "AREA": item.area,
+          "NAMA KAMERA": item.kamera,
+          "DETAIL LOKASI": item.lokasi,
+          "JADWAL PENGECEKAN": item.hari,
+          "SHIFT": item.shift,
+          "KONDISI / STATUS": item.keterangan || "NORMAL",
+          "LINK REKAMAN VIDEO": item.video || "Belum Ada Video"
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan CCTV");
+
+      const fileName = `Laporan_CCTV_LaViz_${bulan}_${minggu.replace(/\s+/g, '_')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+    }
+
+    // 6. MODAL UTILS
+    function playVideoModal(url, cameraName) {
+      document.getElementById("modalVideoTitle").innerText = `Rekaman CCTV: ${cameraName}`;
+      const player = document.getElementById("modalVideoPlayer");
+      player.src = url;
+      const modal = new bootstrap.Modal(document.getElementById("modalVideo"));
+      modal.show();
+      player.play();
+    }
+
+    function closeVideoModal() {
+      const player = document.getElementById("modalVideoPlayer");
+      player.pause();
+      player.src = "";
+    }
+
+    function extractUrl(text) {
+      if (!text) return "";
+      const match = text.match(/https?:\/\/[^\s"']+/);
+      return match ? match[0] : text;
+    }
+  </script>
 </body>
 </html>
