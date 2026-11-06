@@ -245,23 +245,29 @@ function renderTable(data) {
     const badgeClass = getStatusBadgeClass(item.statusExist);
     const tr = document.createElement("tr");
 
+    // AMBIL LINK VIDEO DARI VARIABLE APA PUN YANG TERSEDIA
+    const vUrl = item.videoExist || item.video || "";
+
     let videoActionHtml = '<span class="badge bg-light text-muted border w-100 py-2">Belum Ada Video</span>';
 
-if (item.videoExist) {
-  if (isPlayableVideo(item.videoExist)) {
-    // WARNA HIJAU UNTUK MP4 / PLAYABLE VIDEO
-    videoActionHtml = `
-      <button onclick="playVideoModal('${item.videoExist}', '${item.kamera}')" class="btn btn-success btn-sm py-1 w-100">
-        <i class="bi bi-play-circle-fill me-1"></i>Putar MP4
-      </button>`;
-  } else {
-    // WARNA ORANYE/KUNING BOLD UNTUK FILE DAV / MENTAH
-    videoActionHtml = `
-      <a href="${item.videoExist}" target="_blank" download="CCTV_No_${item.no}.dav" class="btn btn-warning text-dark fw-bold btn-sm py-1 w-100">
-        <i class="bi bi-file-earmark-code-fill me-1"></i>Download DAV
-      </a>`;
-  }
-}
+    if (vUrl && vUrl.trim() !== "" && vUrl.includes("http")) {
+      // Cek apakah format video playable (MP4/WebM) atau mentah (DAV/MOV/AVI)
+      const isMp4 = (typeof isPlayableVideo === "function") ? isPlayableVideo(vUrl) : vUrl.toLowerCase().includes(".mp4");
+
+      if (isMp4) {
+        // TOMBOL HIJAU UNTUK MP4
+        videoActionHtml = `
+          <button onclick="playVideoModal('${vUrl}', '${item.kamera}')" class="btn btn-success btn-sm py-1 w-100">
+            <i class="bi bi-play-circle-fill me-1"></i>Putar MP4
+          </button>`;
+      } else {
+        // TOMBOL ORANYE UNTUK DAV / FORMAT LAIN
+        videoActionHtml = `
+          <a href="${vUrl}" target="_blank" download class="btn btn-warning text-dark fw-bold btn-sm py-1 w-100">
+            <i class="bi bi-file-earmark-code-fill me-1"></i>Download DAV
+          </a>`;
+      }
+    }
 
     tr.innerHTML = `
       <td class="fw-bold">${item.no}</td>
