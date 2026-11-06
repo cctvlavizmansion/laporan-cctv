@@ -203,14 +203,21 @@ function loadSheetData() {
     .then(res => {
       document.getElementById("loadingStatus").style.display = "none";
       if (res.status === "success" && res.data) {
-        masterData = res.data.map((item, index) => ({
-          no: item.no || (index + 1),
-          area: item.area || "-",
-          kamera: item.kamera || "-",
-          lokasi: item.lokasi || "-",
-          statusExist: (item.keterangan || "Normal").toString().trim(),
-          videoExist: extractUrl(item.video)
-        }));
+        masterData = res.data.map((item, index) => {
+          const rawVideo = item.video || "";
+          const extracted = (typeof extractUrl === "function") ? extractUrl(rawVideo) : rawVideo;
+          
+          return {
+            no: item.no || (index + 1),
+            area: item.area || "-",
+            kamera: item.kamera || "-",
+            lokasi: item.lokasi || "-",
+            statusExist: (item.keterangan || "Normal").toString().trim(),
+            keterangan: (item.keterangan || "Normal").toString().trim(),
+            videoExist: extracted || rawVideo,
+            video: extracted || rawVideo
+          };
+        });
         renderTable(masterData);
       }
     })
